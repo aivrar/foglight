@@ -21,20 +21,6 @@ build on.
 
 ![Foglight dashboard](docs/screenshots/hero.PNG)
 
-Additional release screenshots can be placed in:
-
-```text
-docs/screenshots/
-```
-
-Recommended first set:
-
-- `hero.PNG` - current dashboard hero image
-- `dashboard.png` - first launch dashboard
-- `live-tv.png` - Live TV panel with a working fallback link visible
-- `settings.png` - settings and API key panel
-- `map-overlays.png` - hazards, quakes, or conflict overlays active
-
 ## What It Does
 
 Foglight watches public data streams and turns them into a single operational
@@ -192,9 +178,12 @@ foglight/
 
 For a more detailed file map, see [docs/FILE_TREE.md](docs/FILE_TREE.md).
 
-## Build The Single EXE
+## Build From Source
 
-Build requirements:
+End users can download `Foglight.exe` from Releases and run it without Python.
+The steps below are for rebuilding the executable from source.
+
+Developer build requirements:
 
 - Windows
 - Python 3.13+

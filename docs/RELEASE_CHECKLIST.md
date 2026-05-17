@@ -71,23 +71,7 @@ Log path:
 %LOCALAPPDATA%\Foglight\logs\native.log
 ```
 
-## 6. Screenshot Set
-
-Place screenshots under:
-
-```text
-docs/screenshots/
-```
-
-Recommended names:
-
-- `hero.PNG`
-- `dashboard.png`
-- `live-tv.png`
-- `settings.png`
-- `map-overlays.png`
-
-## 7. GitHub Release
+## 6. GitHub Release
 
 Create a version tag:
 

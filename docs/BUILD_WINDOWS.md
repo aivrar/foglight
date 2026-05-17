@@ -15,7 +15,10 @@ The exe bundles:
 - WebView/pythonnet bridge files collected by PyInstaller
 - Foglight icon
 
-## Requirements
+## Developer Requirements
+
+Release users do not install Python. These requirements are only for rebuilding
+`Foglight.exe` from source.
 
 - Windows 10/11
 - Python 3.13+
