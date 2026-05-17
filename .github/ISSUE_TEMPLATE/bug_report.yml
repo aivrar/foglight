@@ -1,0 +1,62 @@
+name: Bug report
+description: Report a reproducible Foglight problem
+title: "[Bug]: "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting a Foglight issue. Do not paste real API keys or private data.
+  - type: textarea
+    id: problem
+    attributes:
+      label: What happened?
+      description: Describe what you saw and what you expected instead.
+      placeholder: Foglight opened, but...
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: List the exact steps that trigger the problem.
+      placeholder: |
+        1. Run Foglight.exe
+        2. Open Settings
+        3. Click ...
+    validations:
+      required: true
+  - type: dropdown
+    id: run-mode
+    attributes:
+      label: Run mode
+      options:
+        - Packaged Foglight.exe
+        - Direct Python server
+        - GitHub Actions build artifact
+    validations:
+      required: true
+  - type: input
+    id: windows
+    attributes:
+      label: Windows version
+      placeholder: Windows 11 23H2, Windows 10 22H2, etc.
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Foglight version or commit
+      placeholder: v0.1.0 or commit SHA
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant logs
+      description: Paste relevant lines from %LOCALAPPDATA%\Foglight\logs\native.log.
+      render: text
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Screenshots
+      description: Drag screenshots here if the issue is visual.

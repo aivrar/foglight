@@ -1,0 +1,1373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Foglight</title>
+
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='5' fill='%23050810'/><circle cx='16' cy='16' r='7' fill='none' stroke='%233a7bd5' stroke-width='2'/><circle cx='16' cy='16' r='2.5' fill='%23ff3b6e'/></svg>">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
+<style>
+  :root {
+    --bg:           #04060c;
+    --bg-chrome:    #07091a;
+    --bg-raised:    #0c1020;
+    --bg-active:    #131a2e;
+    --border:       #1a2138;
+    --border-hi:    #28324a;
+    --text:         #d3dbeb;
+    --text-dim:     #7e8aa3;
+    --text-dimmer:  #4a5266;
+    --accent:       #3a7bd5;
+    --accent-hi:    #4f8de0;
+    --good:         #3dd68c;
+    --warn:         #e6b14a;
+    --hot:          #ff5a4d;
+    --quake:        #ff8a3d;
+    --conflict:     #ff3b6e;
+    --crypto:       #f7931a;
+    --news:         #4ec5ff;
+    --wiki:         #b48cf2;
+    --gh:           #58a6ff;
+    --iss:          #82e0ff;
+    --storm:        #5fb8ff;
+    --relief:       #ffc857;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; height: 100%; background: var(--bg);
+               color: var(--text); font: 12px/1.42 "Inter", -apple-system, Segoe UI, sans-serif;
+               overflow: hidden; -webkit-font-smoothing: antialiased; }
+  button { font: inherit; cursor: pointer; }
+
+  /* ============ Top bar (sitrep header) ============ */
+  #topbar {
+    position: fixed; top: 0; left: 0; right: 0; height: 36px;
+    background: linear-gradient(180deg, #0c1224, #060912);
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; padding: 0 14px; gap: 14px;
+    z-index: 50; user-select: none;
+  }
+  #brand {
+    display: flex; align-items: center; gap: 10px;
+    font: 600 12px/1 "JetBrains Mono", Menlo, Consolas, monospace;
+    letter-spacing: 0.18em; color: #fff; text-transform: uppercase;
+  }
+  #brand .lamp {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--good); box-shadow: 0 0 10px var(--good);
+    animation: lamp 1.8s ease-in-out infinite;
+  }
+  @keyframes lamp { 0%,100%{opacity:.5} 50%{opacity:1} }
+  .top-stat {
+    color: var(--text-dim);
+    font: 10.5px/1 "JetBrains Mono", Menlo, Consolas, monospace;
+    display: flex; align-items: center; gap: 6px;
+    letter-spacing: 0.04em; text-transform: uppercase;
+  }
+  .top-stat .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--good); }
+  .top-stat .dot.stale { background: var(--warn); }
+  .top-stat .dot.err   { background: var(--hot); }
+  .top-clock {
+    margin-left: auto;
+    color: var(--text-dim);
+    font: 11px/1 "JetBrains Mono", Menlo, Consolas, monospace;
+    letter-spacing: 0.06em;
+  }
+  #top-actions { display: flex; gap: 6px; align-items: center; }
+  .tbtn {
+    background: transparent; color: var(--text-dim);
+    border: 1px solid transparent;
+    padding: 5px 11px; border-radius: 4px;
+    font: 10.5px/1 "JetBrains Mono", monospace;
+    letter-spacing: 0.08em; text-transform: uppercase;
+    transition: background .12s, color .12s, border-color .12s;
+  }
+  .tbtn:hover { background: var(--bg-raised); color: #fff; border-color: var(--border); }
+  .tbtn.danger { color: #ff8a8a; border-color: rgba(255, 90, 77, 0.25); }
+  .tbtn.danger:hover { background: rgba(255, 90, 77, 0.15); color: #fff; border-color: var(--hot); }
+
+  /* ============ Tactical status strip (under topbar) ============ */
+  #statusbar {
+    position: fixed; top: 36px; left: 0; right: 0;
+    background: linear-gradient(180deg, #060912, #04060c);
+    border-bottom: 1px solid var(--border);
+    height: 28px;
+    display: flex; align-items: center; padding: 0 14px;
+    z-index: 45; gap: 20px;
+    font: 10.5px/1 "JetBrains Mono", monospace;
+    color: var(--text-dim);
+    letter-spacing: 0.1em; text-transform: uppercase;
+  }
+  #statusbar .stat {
+    display: flex; align-items: center; gap: 6px;
+    border-right: 1px solid var(--border);
+    padding-right: 20px;
+  }
+  #statusbar .stat:last-child { border-right: 0; }
+  #statusbar .stat .lab { color: var(--text-dimmer); }
+  #statusbar .stat .val { color: var(--text); font-weight: 600; }
+  #statusbar .stat .val.hot   { color: var(--hot); }
+  #statusbar .stat .val.warn  { color: var(--warn); }
+  #statusbar .stat .val.good  { color: var(--good); }
+  #statusbar .stat .delta {
+    color: var(--text-dimmer); font-size: 9.5px;
+    margin-left: 4px; letter-spacing: 0.02em;
+  }
+  #statusbar .stat .delta.up   { color: var(--hot); }
+  #statusbar .stat .delta.down { color: var(--good); }
+  #statusbar #zulu-strip {
+    margin-left: auto;
+    display: flex; gap: 14px;
+    color: var(--text-dim);
+    font: 10px "JetBrains Mono", monospace;
+    letter-spacing: 0.06em;
+  }
+  #statusbar #zulu-strip .city { display: flex; align-items: baseline; gap: 4px; }
+  #statusbar #zulu-strip .city b { color: var(--text); font-weight: 600; }
+  #statusbar #zulu-strip .city span { color: var(--text-dimmer); font-size: 9px; }
+
+  /* ============ Theater spotlight bar ============ */
+  #theaterbar {
+    position: fixed; top: 64px; left: 0; right: 0;
+    height: 30px;
+    background: rgba(7, 9, 26, 0.95);
+    border-bottom: 1px solid var(--border);
+    z-index: 44;
+    display: flex; align-items: center; padding: 0 14px; gap: 6px;
+    overflow-x: auto; scrollbar-width: none;
+  }
+  #theaterbar::-webkit-scrollbar { display: none; }
+  #theaterbar .t-lab {
+    color: var(--text-dimmer); font: 9.5px "JetBrains Mono", monospace;
+    letter-spacing: 0.14em; text-transform: uppercase; margin-right: 6px;
+  }
+  #theaterbar .spacer { flex: 1; }
+  #theaterbar .t-btn, #theaterbar .t-action {
+    background: var(--bg-raised);
+    color: var(--text-dim);
+    border: 1px solid var(--border);
+    padding: 4px 10px; border-radius: 3px;
+    font: 10px/1 "JetBrains Mono", monospace;
+    letter-spacing: 0.06em; text-transform: uppercase;
+    cursor: pointer; flex-shrink: 0;
+    transition: background 0.12s, color 0.12s, border-color 0.12s;
+  }
+  #theaterbar .t-btn:hover { background: var(--bg-active); color: var(--text); }
+  #theaterbar .t-btn.active {
+    background: var(--accent); border-color: var(--accent-hi); color: #fff;
+  }
+  #theaterbar .t-action {
+    background: rgba(255, 90, 77, 0.18); color: var(--hot);
+    border-color: rgba(255, 90, 77, 0.4); font-weight: 600;
+  }
+  #theaterbar .t-action:hover { background: var(--hot); color: #fff; }
+
+  /* ============ Watchlist highlight ============ */
+  .stream .ln.watch, .row.watch {
+    background: linear-gradient(90deg,
+        rgba(247, 147, 26, 0.22) 0%,
+        rgba(247, 147, 26, 0.04) 80%) !important;
+    border-left: 3px solid var(--crypto) !important;
+    padding-left: 6px !important;
+  }
+
+  /* ============ Breaking event banner ============ */
+  #breaking-banner {
+    position: fixed; top: 36px; left: 0; right: 0;
+    background: var(--hot); color: #fff;
+    padding: 10px 16px;
+    font: 600 12px/1 "JetBrains Mono", monospace;
+    letter-spacing: 0.1em; text-transform: uppercase;
+    text-align: center;
+    z-index: 80;
+    display: none; cursor: pointer;
+    box-shadow: 0 4px 12px rgba(255, 90, 77, 0.4);
+    animation: breaking-pulse 1.4s ease-in-out infinite;
+  }
+  #breaking-banner.show { display: block; }
+  @keyframes breaking-pulse {
+    0%, 100% { background: var(--hot); }
+    50%      { background: #ff8a7e; }
+  }
+
+  /* ============ Tickers (much slower so they're readable) ============ */
+  .tickerband {
+    position: fixed; left: 0; right: 0; height: 24px;
+    background: rgba(7, 9, 26, 0.96); border-bottom: 1px solid var(--border);
+    overflow: hidden; z-index: 40;
+  }
+  #ticker-news   { top: 94px; }
+  #ticker-crypto { top: 118px; height: 22px; border-top: 1px solid var(--border); }
+  .ticker-track {
+    display: inline-flex; gap: 32px;
+    animation: scroll 720s linear infinite;
+    /* Negative delay so on first paint the ticker is already mid-cycle ---
+       content fills the bar instead of starting from off-screen-right. */
+    animation-delay: -360s;
+    white-space: nowrap; padding-left: 0;
+    height: 100%; align-items: center;
+  }
+  #ticker-crypto .ticker-track { animation-duration: 540s; animation-delay: -270s; }
+  @keyframes scroll {
+    /* Track content is rendered TWICE (HTML + HTML). Translating by -50%
+       puts the start of the second copy where the start of the first was,
+       making the loop seamless: when the keyframe restarts at 0%, the
+       visible content is identical to what was just there. Going to -100%
+       (the whole track) would cause an empty stretch + visible jump. */
+    0%   { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
+  }
+  .ticker-track:hover { animation-play-state: paused; }
+  .ti-news {
+    color: var(--text); font: 11.5px/1 "Inter", sans-serif;
+    display: inline-flex; gap: 10px; align-items: center;
+  }
+  .ti-news .src   { color: var(--news); font-weight: 600; font-size: 10.5px;
+                    text-transform: uppercase; letter-spacing: 0.04em; }
+  .ti-news .sep   { width: 3px; height: 3px; background: var(--text-dimmer);
+                    border-radius: 50%; }
+  .ti-news .ts    { color: var(--text-dimmer);
+                    font: 10.5px/1 "JetBrains Mono", monospace; }
+  .ti-crypto {
+    display: inline-flex; gap: 8px; align-items: center;
+    font: 11px/1 "JetBrains Mono", Menlo, Consolas, monospace; color: var(--text);
+  }
+  .ti-crypto .sym  { color: var(--crypto); font-weight: 600; }
+  .ti-crypto .chg.up   { color: var(--good); }
+  .ti-crypto .chg.down { color: var(--hot); }
+
+  /* ============ Main grid ============ */
+  #main {
+    position: fixed; top: 140px; left: 0; right: 0; bottom: 0;
+    display: grid; gap: 1px; padding: 1px; background: var(--border);
+    grid-template-columns: 320px 1fr 420px;
+    grid-template-rows: 1.55fr 1fr;
+    grid-template-areas:
+      "left  map     right"
+      "left  bottom  right";
+    overflow: hidden;
+  }
+  #main.optional-empty {
+    grid-template-rows: 1fr 0;
+    grid-template-areas:
+      "left  map  right"
+      "left  map  right";
+  }
+  #col-left   { grid-area: left;   display: flex; flex-direction: column; gap: 1px; background: var(--border); min-height: 0; }
+  #col-right  { grid-area: right;  display: flex; flex-direction: column; gap: 1px; background: var(--border); min-height: 0; }
+  /* Force equal-share flex on every panel in the rails. Without this, a
+     panel with no intrinsic content height (e.g. TV before the iframe
+     loads) collapses to ~40px and you can't see the video. */
+  #col-left  > .panel { flex: 1 1 0; min-height: 0; }
+  #col-right > .panel { flex: 1 1 0; min-height: 0; }
+  #panel-tv          { flex: 2.2 1 0; }
+  #pane-map   { grid-area: map;    position: relative; background: #03060f; min-height: 0; min-width: 0; }
+  #pane-bottom{ grid-area: bottom; display: grid; gap: 1px; background: var(--border); min-height: 0; min-width: 0;
+                grid-auto-flow: column; grid-auto-columns: 1fr; }
+
+  /* ============ Panel chrome (sitrep look) ============ */
+  .panel {
+    background: var(--bg);
+    display: flex; flex-direction: column;
+    min-height: 0; min-width: 0; overflow: hidden; position: relative;
+  }
+  .panel.hidden { display: none !important; }
+  .panel header {
+    display: flex; align-items: center; gap: 8px;
+    padding: 6px 10px;
+    background: linear-gradient(180deg, #0a0f1d, #050810);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  .panel header .title {
+    font: 600 10.5px/1 "JetBrains Mono", monospace;
+    text-transform: uppercase; letter-spacing: 0.12em;
+    color: var(--text);
+  }
+  .panel header .badge {
+    margin-left: auto;
+    font: 9.5px/1 "JetBrains Mono", monospace;
+    padding: 2px 6px; border-radius: 3px;
+    background: var(--bg-raised); color: var(--text-dim);
+    letter-spacing: 0.04em; text-transform: lowercase;
+  }
+  .panel header .badge.live   { background: rgba(61, 214, 140, 0.18); color: var(--good); }
+  .panel header .badge.cached { background: rgba(230, 177, 74, 0.18); color: var(--warn); }
+  .panel header .badge.stale  { background: rgba(255, 90, 77, 0.18); color: var(--hot); }
+  .panel header .badge.error  { background: rgba(255, 90, 77, 0.18); color: var(--hot); }
+  .panel .body {
+    flex: 1; overflow: auto; padding: 4px 8px; min-height: 0;
+    scrollbar-width: thin; scrollbar-color: var(--border-hi) transparent;
+  }
+  .panel .body::-webkit-scrollbar       { width: 6px; }
+  .panel .body::-webkit-scrollbar-thumb { background: var(--border-hi); border-radius: 3px; }
+
+  /* Glyph-free icon pills (avoid unicode tofu boxes on Windows fonts). */
+  .icon {
+    display: inline-flex; align-items: center; justify-content: center;
+    height: 14px; padding: 0 5px; border-radius: 2px;
+    background: var(--border-hi); color: var(--text);
+    font: 700 9px/1 "JetBrains Mono", monospace;
+    letter-spacing: 0.08em;
+  }
+  .icon.q     { background: rgba(255,138,61,.22); color: var(--quake); }
+  .icon.wx    { background: rgba(230,177,74,.22); color: var(--warn); }
+  .icon.cnf   { background: rgba(255,59,110,.25); color: var(--conflict); }
+  .icon.tv    { background: rgba(255,90,77,.22);  color: var(--hot); }
+  .icon.btc   { background: rgba(247,147,26,.22); color: var(--crypto); }
+  .icon.iss   { background: rgba(130,224,255,.22); color: var(--iss); }
+  .icon.wiki  { background: rgba(180,140,242,.22); color: var(--wiki); }
+  .icon.gh    { background: rgba(88,166,255,.22); color: var(--gh); }
+  .icon.sec   { background: rgba(125,138,163,.22); color: var(--text-dim); }
+  .icon.talk  { background: rgba(125,138,163,.22); color: var(--text-dim); }
+  .icon.storm { background: rgba(95,184,255,.22); color: var(--storm); }
+  .icon.relief{ background: rgba(255,200,87,.22); color: var(--relief); }
+
+  /* ============ Row entries (lists inside panels) ============ */
+  .row {
+    display: flex; gap: 8px; padding: 5px 4px;
+    border-bottom: 1px solid rgba(26, 33, 56, 0.55);
+    align-items: flex-start; font-size: 11.5px;
+  }
+  .row:last-child { border-bottom: 0; }
+  .row .when { color: var(--text-dimmer); font: 10.5px/1.45 "JetBrains Mono", monospace; flex-shrink: 0; width: 46px; }
+  .row .label { flex: 1; min-width: 0; }
+  .row .label .title { color: var(--text); display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .row .label .sub   { color: var(--text-dim); font-size: 10.5px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; display:block; }
+  .row .right { color: var(--text-dim); font: 10.5px/1 "JetBrains Mono", monospace; flex-shrink: 0; align-self:center; }
+  .row .mag {
+    display: inline-block; min-width: 22px; padding: 1px 4px; border-radius: 3px;
+    text-align: center; font: 600 10.5px "JetBrains Mono", monospace;
+    background: var(--bg-raised); color: var(--text);
+  }
+  .row .mag.m1 { background: rgba(58, 123, 213, 0.18); color: #7eb0ff; }
+  .row .mag.m2 { background: rgba(255, 138, 61, 0.20); color: #ffb47e; }
+  .row .mag.m3 { background: rgba(255, 90, 77, 0.25);  color: #ffa194; }
+  .row .mag.m4 { background: rgba(255, 59, 110, 0.45); color: #fff; }
+
+  /* ============ Annotation pins (user-placed) ============ */
+  .anno-pin {
+    width: 14px; height: 14px;
+    background: var(--crypto);
+    border: 2px solid #fff;
+    border-radius: 50%;
+    box-shadow: 0 0 8px rgba(247, 147, 26, 0.5);
+  }
+  #annotation-list { font: 11px "JetBrains Mono", monospace; }
+  #annotation-list .anno {
+    display: flex; align-items: center; gap: 10px;
+    padding: 6px 0; border-bottom: 1px dashed var(--border);
+  }
+  #annotation-list .anno .dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--crypto); flex-shrink: 0;
+  }
+  #annotation-list .anno .lbl { flex: 1; color: var(--text); }
+  #annotation-list .anno .coord { color: var(--text-dim); font-size: 10px; }
+  #annotation-list .anno button {
+    background: transparent; border: 1px solid var(--border-hi);
+    color: var(--text-dim); padding: 2px 8px;
+    font: 9.5px "JetBrains Mono", monospace; cursor: pointer;
+    text-transform: uppercase; letter-spacing: 0.06em;
+  }
+  #annotation-list .anno button:hover { color: var(--hot); border-color: var(--hot); }
+
+  /* ============ Map ============ */
+  #map { width: 100%; height: 100%; background: #03060f; }
+  .leaflet-container { background: #03060f !important;
+                       font: 11px "Inter", sans-serif; }
+  .leaflet-control-attribution { background: rgba(5, 7, 13, 0.78) !important;
+                                  color: #5a6680 !important; font-size: 9.5px !important; }
+  .leaflet-control-attribution a { color: #7eb0ff !important; }
+  .leaflet-popup-content-wrapper, .leaflet-popup-tip {
+    background: var(--bg-raised) !important; color: var(--text) !important;
+    border: 1px solid var(--border-hi);
+  }
+  .leaflet-popup-content { font: 11px "Inter", sans-serif; margin: 8px 10px; }
+  .leaflet-popup-content a { color: #7eb0ff; }
+
+  /* Conflict hotspot popup --- military-style intel panel. */
+  .conflict-popup-wrap .leaflet-popup-content-wrapper {
+    background: var(--bg-raised) !important;
+    border: 1px solid #5a2f3f !important;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.6);
+  }
+  .conflict-popup-wrap .leaflet-popup-content { margin: 0; min-width: 320px; }
+  .conflict-popup .cm-header {
+    background: linear-gradient(180deg, #2a1521, #1d0e16);
+    padding: 10px 14px; border-bottom: 1px solid #5a2f3f;
+  }
+  .conflict-popup .cm-name {
+    color: #ff8aa1; font: 600 13px/1 "JetBrains Mono", monospace;
+    letter-spacing: 0.12em; text-transform: uppercase;
+  }
+  .conflict-popup .cm-stats {
+    color: var(--text-dim); font-size: 10.5px; margin-top: 3px;
+    font-family: "JetBrains Mono", monospace; letter-spacing: 0.04em;
+  }
+  .conflict-popup .cm-stats b { color: var(--text); }
+  .conflict-popup .cm-list { max-height: 260px; overflow-y: auto; padding: 4px 0; }
+  .conflict-popup .cm-list::-webkit-scrollbar       { width: 6px; }
+  .conflict-popup .cm-list::-webkit-scrollbar-thumb { background: var(--border-hi); border-radius: 3px; }
+  .conflict-popup .cm-row {
+    display: block;
+    padding: 7px 14px; border-bottom: 1px solid var(--border);
+    color: inherit; text-decoration: none;
+    transition: background 0.1s;
+  }
+  .conflict-popup a.cm-row { cursor: pointer; }
+  .conflict-popup a.cm-row:hover { background: rgba(255, 59, 110, 0.15); }
+  .conflict-popup a.cm-row:hover .cm-title { color: #fff; }
+  .conflict-popup .cm-row:last-child { border-bottom: 0; }
+  .conflict-popup .cm-meta {
+    display: flex; gap: 10px; color: var(--text-dimmer);
+    font: 9.5px/1 "JetBrains Mono", monospace;
+    letter-spacing: 0.06em; margin-bottom: 3px;
+  }
+  .conflict-popup .cm-time { color: var(--hot); }
+  .conflict-popup .cm-src  { color: var(--news); }
+  .conflict-popup .cm-title { color: var(--text); font-size: 11.5px; line-height: 1.4; }
+  .conflict-popup .cm-footer {
+    background: var(--bg-active); padding: 6px 14px;
+    color: var(--text-dimmer); font-size: 10px;
+    font-family: "JetBrains Mono", monospace; letter-spacing: 0.04em;
+  }
+  .leaflet-bar a { background: var(--bg-raised) !important; color: var(--text) !important;
+                   border-color: var(--border-hi) !important; }
+  .leaflet-bar a:hover { background: var(--bg-active) !important; }
+
+  #map-legend {
+    position: absolute; left: 10px; bottom: 10px; z-index: 1000;
+    background: rgba(7, 9, 26, 0.92); border: 1px solid var(--border);
+    border-radius: 4px; padding: 7px 10px; display: flex; flex-direction: column; gap: 3px;
+    font: 10px "JetBrains Mono", monospace; color: var(--text-dim);
+    text-transform: uppercase; letter-spacing: 0.08em;
+  }
+  #map-legend .li { display: flex; align-items: center; gap: 7px; }
+  #map-legend .sw { width: 9px; height: 9px; border-radius: 50%; }
+  #map-legend .sw.q { background: var(--quake); }
+  #map-legend .sw.c { background: var(--conflict); }
+  #map-legend .sw.w { background: var(--warn); }
+  #map-legend .sw.i { background: var(--iss); }
+  #map-legend .sw.s { background: var(--storm); }
+
+  #iss-readout, #map-status, #map-coord {
+    position: absolute; right: 10px; z-index: 1000;
+    background: rgba(7, 9, 26, 0.92); border: 1px solid var(--border);
+    border-radius: 4px; padding: 5px 9px;
+    font: 10px "JetBrains Mono", monospace; letter-spacing: 0.06em;
+  }
+  #iss-readout { top: 10px; color: var(--iss); }
+  #map-status  { top: 36px; color: var(--text-dim); }
+  #map-coord   { top: 62px; color: var(--text-dim); }
+
+  /* ============ Bitcoin Pulse (compact sitrep strip) ============ */
+  /* The fee-band rainbow stack was loud and not sitrep-appropriate. The
+     new compact layout is a monospace grid of key stats --- always shows
+     the header label at the top, fits in any small panel. */
+  #fee-stack { display: none; }  /* keep ID in DOM but hide; JS now writes #fee-summary */
+  #fee-summary {
+    flex: 1; display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px 16px;
+    padding: 12px 14px;
+    background: var(--bg);
+    font: 11px/1.4 "JetBrains Mono", monospace;
+    color: var(--text); letter-spacing: 0.04em;
+    align-content: start;
+  }
+  #fee-summary .stat-row {
+    display: flex; justify-content: space-between; align-items: baseline;
+    border-bottom: 1px dashed rgba(26,33,56,0.5); padding-bottom: 4px;
+  }
+  #fee-summary .stat-row .label {
+    color: var(--text-dim);
+    font-size: 9.5px; text-transform: uppercase; letter-spacing: 0.1em;
+  }
+  #fee-summary .stat-row b { color: var(--text); font-weight: 600; font-size: 12px; }
+  #fee-summary .btc-price b { color: var(--crypto); font-size: 13px; }
+  #fee-summary .btc-fees b  { color: var(--good); }
+  #fee-summary .stat-row.full { grid-column: 1 / -1; }
+
+  /* ============ Optional-panels CTA strip ============ */
+  /* When all optional panels are hidden, the bottom strip shows a single
+     pill encouraging the user to open Settings -> Panels. */
+  #optional-cta {
+    display: flex; align-items: center; justify-content: center;
+    background: var(--bg);
+    color: var(--text-dim);
+    font: 10.5px/1 "JetBrains Mono", monospace;
+    letter-spacing: 0.1em; text-transform: uppercase;
+    cursor: pointer;
+    gap: 12px;
+    padding: 14px;
+    border-top: 1px dashed var(--border-hi);
+  }
+  #optional-cta:hover { color: var(--text); background: var(--bg-raised); }
+  #optional-cta .pill {
+    border: 1px solid var(--border-hi); padding: 4px 10px; border-radius: 3px;
+    color: var(--text-dim);
+  }
+  #optional-cta:hover .pill { border-color: var(--accent); color: var(--accent); }
+
+  /* ============ Live TV ============ */
+  #panel-tv .body { padding: 0; background: #000; position: relative; }
+  #tv-overlay {
+    position: absolute; inset: 0; display: flex; align-items: center;
+    justify-content: center; gap: 10px; background: rgba(0,0,0,0.55);
+    color: #fff; z-index: 5; cursor: pointer;
+    font: 11px/1 "JetBrains Mono", monospace;
+    letter-spacing: 0.08em; text-transform: uppercase;
+    transition: opacity 0.25s;
+  }
+  #tv-overlay.hide { opacity: 0; pointer-events: none; }
+  #tv-overlay .play {
+    width: 38px; height: 38px; border-radius: 50%;
+    background: var(--hot); display: flex; align-items: center; justify-content: center;
+    font-size: 16px;
+  }
+  #tv-overlay .play::after { content: '▶'; margin-left: 2px; }
+  #panel-tv .tv-tabs {
+    display: flex; gap: 1px; background: var(--border);
+    overflow-x: auto; scrollbar-width: none;
+    border-bottom: 1px solid var(--border);
+  }
+  #panel-tv .tv-tabs::-webkit-scrollbar { display: none; }
+  #panel-tv .tv-tab {
+    flex: 1; min-width: 0;
+    padding: 5px 8px;
+    background: var(--bg-raised);
+    color: var(--text-dim);
+    border: 0;
+    font: 9.5px/1 "JetBrains Mono", monospace;
+    letter-spacing: 0.06em; text-transform: uppercase;
+    cursor: pointer;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    transition: background .12s, color .12s;
+  }
+  #panel-tv .tv-tab.active { background: var(--hot); color: #fff; }
+  #panel-tv .tv-tab:hover:not(.active) { background: var(--bg-active); color: var(--text); }
+  #tv-frame { width: 100%; height: 100%; border: 0; background: #000; display: block; }
+  #tv-stack { display: flex; flex-direction: column; height: 100%; }
+  #tv-frame-wrap { flex: 1; position: relative; min-height: 0; }
+  #tv-frame-wrap iframe { position: absolute; inset: 0; width: 100%; height: 100%; }
+  #tv-open {
+    position: absolute; right: 8px; bottom: 8px; z-index: 7;
+    background: rgba(7, 9, 26, 0.92);
+    border: 1px solid var(--border-hi);
+    color: var(--text);
+    border-radius: 3px;
+    padding: 5px 8px;
+    font: 9.5px/1 "JetBrains Mono", monospace;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+  #tv-open:hover { background: var(--bg-active); text-decoration: none; }
+
+  /* ============ Autoscroll for stream panels ============ */
+  /* The streams (Conflict Wire, Humanitarian Sitreps, Wikipedia, GitHub,
+     SEC, HN+Reddit) scroll vertically. The actual scrolling is driven by
+     JS so the user can grab the scrollbar and review past entries; the
+     auto-scroll resumes after a couple of seconds of no interaction.
+     CSS only handles the fade mask + scrollbar styling. */
+  .stream-wrap {
+    position: relative; height: 100%; overflow: auto;
+    scrollbar-width: thin; scrollbar-color: var(--border-hi) transparent;
+    -webkit-mask-image: linear-gradient(180deg,
+        transparent 0, #000 14px, #000 calc(100% - 14px), transparent 100%);
+            mask-image: linear-gradient(180deg,
+        transparent 0, #000 14px, #000 calc(100% - 14px), transparent 100%);
+  }
+  .stream-wrap::-webkit-scrollbar       { width: 8px; }
+  .stream-wrap::-webkit-scrollbar-thumb { background: var(--border-hi); border-radius: 4px; }
+  .stream-wrap::-webkit-scrollbar-thumb:hover { background: var(--accent); }
+  .stream-track { transform: none !important; }  /* override old keyframe transform if any */
+  /* User-engaged streams show a small pause indicator. */
+  .stream-wrap.user-active::after {
+    content: 'PAUSED'; position: absolute; top: 6px; right: 12px;
+    background: var(--warn); color: #1a1208;
+    font: 700 9px/1 "JetBrains Mono", monospace;
+    letter-spacing: 0.1em; padding: 3px 6px; border-radius: 2px;
+    pointer-events: none; z-index: 5;
+  }
+
+  .stream {
+    font: 11px "JetBrains Mono", Menlo, Consolas, monospace;
+    color: var(--text); padding: 4px 0;
+  }
+  .stream .ln {
+    padding: 4px 6px; border-bottom: 1px dashed rgba(26, 33, 56, 0.45);
+    display: flex; gap: 6px; align-items: baseline;
+    text-decoration: none; color: inherit;
+    transition: background 0.1s;
+  }
+  .stream a.ln { cursor: pointer; }
+  .stream a.ln:hover {
+    background: rgba(58, 123, 213, 0.15);
+    text-decoration: none;
+  }
+  .stream a.ln:hover .ttl { color: #fff; }
+  .stream .ln .t  { color: var(--text-dimmer); font-size: 10.5px; flex-shrink: 0;
+                    font-family: "JetBrains Mono", monospace; }
+  .stream .ln .who { flex-shrink: 0; }
+  .stream .ln .ttl { color: var(--text); flex: 1; overflow: hidden;
+                     text-overflow: ellipsis; white-space: nowrap; font-family: "Inter", sans-serif; }
+  .stream .ln .sz { color: var(--text-dim); font-size: 10.5px; flex-shrink: 0;
+                    font-family: "JetBrains Mono", monospace; }
+  .stream .ln.wk  .who { color: var(--wiki); }
+  .stream .ln.gh  .who { color: var(--gh); }
+  .stream .ln.gh  .evt { color: var(--text-dim); font-size: 10.5px; flex-shrink: 0; }
+  .stream .ln.cnf { background: linear-gradient(90deg,
+                       rgba(255, 59, 110, 0.08) 0%, transparent 80%); }
+  .stream a.ln.cnf:hover { background: rgba(255, 59, 110, 0.22); }
+  .stream .ln.cnf .who { color: var(--conflict); }
+  .stream .ln.cnf .ttl { color: #ffd8e2; }
+  .stream .ln.rlf .who { color: var(--relief); }
+  .stream .ln.sec .who { color: var(--text-dim); }
+  .stream .ln.tlk .who { color: var(--news); }
+  /* Severe weather rows also clickable. */
+  .row.clickable { cursor: pointer; }
+  .row.clickable:hover { background: rgba(58, 123, 213, 0.12); }
+  .row.clickable:hover .title { color: #fff; }
+
+  /* ============ Major Hazards (cyclones + significant quakes) ============ */
+  .hazard-section {
+    background: var(--bg-chrome);
+    color: var(--text-dim);
+    font: 600 9.5px/1 "JetBrains Mono", monospace;
+    letter-spacing: 0.14em; text-transform: uppercase;
+    padding: 6px 10px;
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    margin-top: 4px;
+  }
+  .hazard-section:first-child { margin-top: 0; border-top: 0; }
+  .cyclone {
+    padding: 7px 8px; border-bottom: 1px solid var(--border);
+    display: flex; gap: 8px; align-items: center;
+  }
+  .cyclone:last-child { border-bottom: 0; }
+  .cyclone .name {
+    font: 600 11px "JetBrains Mono", monospace;
+    color: var(--storm); letter-spacing: 0.05em; flex: 1; min-width: 0;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .cyclone .cat {
+    background: var(--storm); color: #001425;
+    font: 700 10px "JetBrains Mono", monospace;
+    padding: 2px 6px; border-radius: 3px; flex-shrink: 0;
+  }
+  .cyclone .cat.major { background: var(--hot); color: #fff; }
+  .cyclone .basin {
+    color: var(--text-dim); font: 10px "JetBrains Mono", monospace;
+    letter-spacing: 0.04em; text-transform: uppercase; flex-shrink: 0;
+  }
+
+  /* ============ Settings panel ============ */
+  #pane-settings {
+    position: fixed; top: 36px; left: 0; right: 0; bottom: 0;
+    background: var(--bg); z-index: 60; display: none; overflow: auto;
+  }
+  #pane-settings.show { display: block; }
+  #settings-close {
+    position: fixed; top: 44px; right: 20px;
+    width: 36px; height: 36px; border-radius: 4px;
+    background: var(--hot); color: #fff; border: 0;
+    cursor: pointer;
+    font: 700 18px/1 "JetBrains Mono", monospace;
+    display: none; align-items: center; justify-content: center;
+    z-index: 70;
+    transition: background 0.12s;
+  }
+  #settings-close.show { display: flex; }
+  #settings-close:hover { background: #ff7a6f; }
+  .settings-wrap { max-width: 820px; margin: 0 auto; padding: 30px 28px 64px; }
+  .settings-wrap h1 {
+    color: #fff; margin: 0 0 22px;
+    font: 600 16px/1 "JetBrains Mono", monospace;
+    letter-spacing: 0.16em; text-transform: uppercase;
+  }
+  .settings-back-bar {
+    display: flex; align-items: center; gap: 12px;
+    background: var(--bg-raised); border: 1px solid var(--border-hi);
+    padding: 10px 16px; margin: 0 0 22px;
+    border-radius: 4px;
+  }
+  .settings-back-bar .back-btn {
+    background: var(--accent); border: 0; color: #fff;
+    padding: 7px 14px; border-radius: 4px;
+    font: 600 11px/1 "JetBrains Mono", monospace;
+    letter-spacing: 0.08em; text-transform: uppercase; cursor: pointer;
+  }
+  .settings-back-bar .back-btn:hover { background: var(--accent-hi); }
+  .settings-back-bar .hint { color: var(--text-dim); font-size: 11px; }
+  .settings-section {
+    background: var(--bg-raised); border: 1px solid var(--border);
+    border-radius: 4px; padding: 18px 22px; margin-bottom: 18px;
+  }
+  .settings-section h2 {
+    margin: 0 0 6px;
+    font: 600 11px/1 "JetBrains Mono", monospace;
+    color: #fff; letter-spacing: 0.14em; text-transform: uppercase;
+  }
+  .settings-section .sub { color: var(--text-dim); font-size: 12px; margin-bottom: 16px; line-height: 1.55; }
+  .setting-row {
+    display: flex; gap: 14px; padding: 10px 0;
+    border-top: 1px solid var(--border); align-items: center;
+  }
+  .setting-row:first-of-type { border-top: 0; }
+  .setting-row .lbl { flex: 1; min-width: 0; }
+  .setting-row .lbl h3 { margin: 0 0 3px; font-size: 12px; color: var(--text); font-weight: 600; }
+  .setting-row .lbl p  { margin: 0; font-size: 11.5px; color: var(--text-dim); line-height: 1.55; }
+  .setting-row .lbl p a { color: var(--news); }
+  .setting-row input[type="password"], .setting-row input[type="text"] {
+    background: var(--bg); border: 1px solid var(--border-hi); color: var(--text);
+    padding: 6px 10px; border-radius: 3px; font: 11.5px "JetBrains Mono", monospace;
+    width: 260px; outline: none;
+  }
+  .setting-row input:focus { border-color: var(--accent); }
+  .setting-row .right-actions { display: flex; gap: 6px; align-items: center; }
+  .setting-row button {
+    background: var(--bg); border: 1px solid var(--border-hi); color: var(--text);
+    padding: 6px 12px; border-radius: 3px;
+    font: 10.5px/1 "JetBrains Mono", monospace; letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+  .setting-row button:hover { background: var(--bg-active); }
+  .setting-row button.danger { color: #ff8a8a; border-color: rgba(255, 90, 77, 0.3); }
+  .key-status {
+    font: 10px/1 "JetBrains Mono", monospace; padding: 2px 7px; border-radius: 8px;
+    background: rgba(125, 138, 163, 0.15); color: var(--text-dim);
+    text-transform: uppercase; letter-spacing: 0.06em;
+  }
+  .key-status.on { background: rgba(61, 214, 140, 0.18); color: var(--good); }
+
+  .toggle {
+    position: relative; width: 36px; height: 20px;
+    background: #1a2138; border-radius: 10px; cursor: pointer;
+    transition: background 0.12s; flex-shrink: 0;
+  }
+  .toggle.on { background: var(--accent); }
+  .toggle::after {
+    content: ""; position: absolute; top: 2px; left: 2px;
+    width: 16px; height: 16px; background: #fff; border-radius: 50%;
+    transition: left 0.14s;
+  }
+  .toggle.on::after { left: 18px; }
+
+  /* ============ Open-Meteo weather popup ============ */
+  .wx-popup-wrap .leaflet-popup-content-wrapper {
+    background: var(--bg-raised) !important;
+    border: 1px solid var(--accent) !important;
+  }
+  .wx-popup { font: 11px "JetBrains Mono", monospace; color: var(--text); padding: 4px 0; }
+  .wx-popup .wx-coord { color: var(--text-dim); font-size: 10px; letter-spacing: 0.06em; margin-bottom: 4px; }
+  .wx-popup .wx-temp  { color: #fff; font-size: 18px; font-weight: 600; margin-bottom: 6px; }
+  .wx-popup .wx-temp .wx-cond { color: var(--text-dim); font-size: 12px; font-weight: 400; margin-left: 8px; }
+  .wx-popup .wx-meta  {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 3px 12px;
+    font-size: 10.5px; color: var(--text);
+    border-top: 1px solid var(--border); padding-top: 6px;
+  }
+  .wx-popup .wx-meta .lab { color: var(--text-dim); margin-right: 5px; }
+  .wx-popup .wx-strip {
+    display: flex; justify-content: space-between;
+    margin-top: 7px; padding-top: 7px;
+    border-top: 1px solid var(--border);
+  }
+  .wx-popup .wx-strip .hr {
+    display: flex; flex-direction: column; align-items: center; gap: 2px;
+  }
+  .wx-popup .wx-strip .hr b { color: var(--text); font-size: 11px; font-weight: 600; }
+  .wx-popup .wx-strip .hr i { color: var(--text-dimmer); font-style: normal; font-size: 9.5px; }
+  .wx-popup .wx-loading { color: var(--text-dim); font-style: italic; padding: 8px 4px; }
+
+  /* ============ GDACS rows (inside Major Hazards) ============ */
+  .gdacs-row {
+    display: flex; align-items: center; gap: 8px;
+    padding: 6px 8px;
+    border-bottom: 1px solid var(--border);
+    color: inherit; text-decoration: none;
+    cursor: pointer; transition: background 0.1s;
+  }
+  .gdacs-row:hover { background: rgba(58,123,213,0.12); }
+  .gdacs-row:last-child { border-bottom: 0; }
+  .gdacs-row .sev {
+    width: 8px; height: 26px; border-radius: 2px; flex-shrink: 0;
+  }
+  .gdacs-row.red    .sev { background: var(--hot); }
+  .gdacs-row.orange .sev { background: var(--warn); }
+  .gdacs-row.green  .sev { background: var(--good); }
+  .gdacs-row .meta { flex-shrink: 0; font: 10px "JetBrains Mono", monospace; color: var(--text-dim); width: 38px; letter-spacing: 0.04em; text-transform: uppercase; }
+  .gdacs-row .name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis;
+                     white-space: nowrap; font-size: 11.5px; color: var(--text); }
+
+  /* ============ Alert detail drawer (NWS, conflict marker, etc.) ============ */
+  /* Slide-in drawer from the right that shows full text of an alert.
+     Click outside or press Esc to close. */
+  #alert-drawer {
+    position: fixed; top: 0; right: 0; height: 100vh;
+    width: 480px; max-width: 90vw;
+    background: var(--bg-raised);
+    border-left: 1px solid var(--border-hi);
+    box-shadow: -8px 0 24px rgba(0,0,0,0.6);
+    transform: translateX(100%);
+    transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 90; display: flex; flex-direction: column;
+  }
+  #alert-drawer.show { transform: translateX(0); }
+  #alert-drawer header {
+    display: flex; align-items: flex-start; gap: 8px;
+    padding: 16px 18px;
+    border-bottom: 1px solid var(--border);
+    background: linear-gradient(180deg, #1a0e10, #0c0a14);
+  }
+  #alert-drawer header .ad-event {
+    flex: 1; color: #ff8a8a;
+    font: 700 13px/1.2 "JetBrains Mono", monospace;
+    letter-spacing: 0.08em; text-transform: uppercase;
+  }
+  #alert-drawer header .ad-close {
+    background: transparent; border: 1px solid var(--border-hi);
+    color: var(--text); width: 28px; height: 28px;
+    border-radius: 3px; cursor: pointer; font-size: 14px;
+  }
+  #alert-drawer header .ad-close:hover { background: var(--hot); color: #fff; border-color: var(--hot); }
+  #alert-drawer .ad-body {
+    flex: 1; overflow-y: auto; padding: 14px 18px;
+    color: var(--text); font: 12px/1.5 "Inter", sans-serif;
+  }
+  #alert-drawer .ad-meta {
+    display: grid; grid-template-columns: max-content 1fr; gap: 4px 14px;
+    margin-bottom: 14px; padding-bottom: 14px;
+    border-bottom: 1px solid var(--border);
+    font: 11px "JetBrains Mono", monospace; letter-spacing: 0.04em;
+  }
+  #alert-drawer .ad-meta .lab { color: var(--text-dim); }
+  #alert-drawer .ad-meta .val { color: var(--text); }
+  #alert-drawer .ad-meta .val.sev-extreme  { color: var(--hot); }
+  #alert-drawer .ad-meta .val.sev-severe   { color: var(--hot); }
+  #alert-drawer .ad-meta .val.sev-moderate { color: var(--warn); }
+  #alert-drawer .ad-meta .val.sev-minor    { color: var(--news); }
+  #alert-drawer .ad-body h3 {
+    margin: 14px 0 6px;
+    font: 600 11px/1 "JetBrains Mono", monospace;
+    color: var(--text); letter-spacing: 0.12em; text-transform: uppercase;
+  }
+  #alert-drawer .ad-body p {
+    margin: 0 0 8px;
+    white-space: pre-wrap;
+    color: var(--text);
+  }
+
+  /* ============ Modal + shutdown overlay ============ */
+  .modal-overlay {
+    position: fixed; inset: 0; display: none;
+    align-items: center; justify-content: center;
+    background: rgba(0, 0, 0, 0.74); z-index: 200;
+  }
+  .modal-overlay.show { display: flex; }
+  .modal {
+    background: var(--bg-raised); color: var(--text);
+    border: 1px solid var(--border-hi); border-radius: 6px;
+    padding: 22px 26px 18px; min-width: 320px; max-width: 460px;
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.7);
+  }
+  .modal h3 { margin: 0 0 8px; font-size: 14px; color: #fff; }
+  .modal p  { margin: 0 0 18px; color: var(--text-dim); font-size: 12px; line-height: 1.5; }
+  .modal-actions { display: flex; justify-content: flex-end; gap: 8px; }
+  .modal-btn {
+    background: var(--bg-active); border: 1px solid var(--border-hi); color: var(--text);
+    padding: 7px 16px; border-radius: 4px;
+    font: 10.5px/1 "JetBrains Mono", monospace;
+    letter-spacing: 0.06em; text-transform: uppercase;
+  }
+  .modal-btn.danger { background: var(--hot); border-color: var(--hot); color: #fff; }
+
+  #shutdown-overlay {
+    position: fixed; inset: 0; background: rgba(4, 6, 12, 0.95);
+    display: none; align-items: center; justify-content: center;
+    z-index: 300; font-size: 13px; color: var(--text-dim);
+  }
+  #shutdown-overlay.show { display: flex; }
+  #shutdown-overlay .pulse-big {
+    width: 28px; height: 28px; border-radius: 50%; background: var(--hot);
+    animation: lamp 1.2s ease-in-out infinite; margin-right: 16px;
+  }
+
+  /* ============ Misc ============ */
+  .empty { color: var(--text-dim); font-style: italic; padding: 14px 8px;
+           font-size: 12px; line-height: 1.55; }
+  .empty b { color: var(--text); font-style: normal; }
+  .empty .seasonal {
+    color: var(--text-dimmer); font-size: 11px; font-style: normal;
+    margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--border);
+  }
+  a { color: var(--news); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  /* Narrow-window fallback. Foglight is designed for a large desktop WebView,
+     but the app should remain navigable when the window is resized or tested
+     on a phone-sized viewport. */
+  @media (max-width: 900px) {
+    #topbar {
+      gap: 10px; padding: 0 8px;
+      overflow-x: auto; scrollbar-width: none;
+    }
+    #topbar::-webkit-scrollbar { display: none; }
+    #brand { letter-spacing: 0.12em; flex: 0 0 auto; }
+    #topbar .top-stat, #top-actions { flex: 0 0 auto; }
+
+    #statusbar {
+      gap: 14px; padding: 0 8px;
+      overflow-x: auto; scrollbar-width: none;
+    }
+    #statusbar::-webkit-scrollbar { display: none; }
+    #statusbar .stat { flex: 0 0 auto; padding-right: 14px; }
+    #statusbar #zulu-strip { display: none; }
+
+    #theaterbar { padding: 0 8px; }
+
+    #main {
+      grid-template-columns: minmax(0, 1fr);
+      grid-template-rows: minmax(360px, 52vh) auto auto auto;
+      grid-template-areas:
+        "map"
+        "left"
+        "right"
+        "bottom";
+      overflow-x: hidden;
+      overflow-y: auto;
+    }
+    #main.optional-empty {
+      grid-template-rows: minmax(360px, 52vh) auto auto auto;
+      grid-template-areas:
+        "map"
+        "left"
+        "right"
+        "bottom";
+    }
+    #pane-map { min-height: min(520px, 52vh); }
+    #col-left, #col-right {
+      min-height: auto;
+      overflow: visible;
+    }
+    #col-left > .panel, #col-right > .panel {
+      flex: 0 0 240px;
+    }
+    #panel-tv { flex-basis: 280px; }
+    #pane-bottom {
+      grid-auto-flow: row;
+      grid-auto-columns: unset;
+      grid-template-columns: 1fr;
+    }
+    #pane-bottom .panel { min-height: 240px; }
+    #map-legend { max-width: 180px; font-size: 9px; }
+  }
+
+  @media (max-width: 520px) {
+    #topbar { gap: 8px; }
+    #topbar .top-clock, #stat-wiki { display: none; }
+    #top-actions { margin-left: auto; }
+    .tbtn { padding: 5px 8px; }
+    #statusbar .stat { padding-right: 12px; }
+    #map-legend { display: none; }
+    #iss-readout, #map-status, #map-coord {
+      right: 8px; max-width: calc(100% - 16px);
+      font-size: 9px; padding: 4px 6px;
+    }
+    #pane-settings { top: 36px; }
+    #settings-close { top: 44px; right: 10px; }
+    .settings-wrap { max-width: none; padding: 24px 12px 64px; }
+    .settings-section { padding: 16px 14px; }
+    .settings-back-bar { padding: 10px 12px; }
+    .setting-row {
+      align-items: stretch;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .setting-row .right-actions {
+      align-items: stretch;
+      flex-wrap: wrap;
+    }
+    .setting-row input[type="password"], .setting-row input[type="text"] {
+      width: 100% !important;
+    }
+  }
+</style>
+</head>
+<body>
+
+<div id="topbar">
+  <div id="brand"><span class="lamp"></span> Foglight</div>
+  <div class="top-stat" id="stat-feeds"><span class="dot"></span><span id="stat-feeds-txt">starting</span></div>
+  <div class="top-stat" id="stat-wiki"><span class="dot stale"></span><span>wiki idle</span></div>
+  <div class="top-clock" id="clock">--:--:-- UTC</div>
+  <div id="top-actions">
+    <button class="tbtn" onclick="openSettings()" title="Panel toggles, API keys, audio">Settings</button>
+    <button class="tbtn danger" onclick="shutdownApp()" title="Stop all foglight processes and close the app">Shut down</button>
+  </div>
+</div>
+
+<!-- Tactical status strip --- live counts of high-signal events -->
+<div id="statusbar">
+  <div class="stat"><span class="lab">HOTSPOTS</span><span class="val" id="stat-hotspots">--</span><span class="delta" id="dlt-hotspots"></span></div>
+  <div class="stat"><span class="lab">WX&nbsp;ALERTS</span><span class="val" id="stat-wxalerts">--</span><span class="delta" id="dlt-wxalerts"></span></div>
+  <div class="stat"><span class="lab">SEISMIC&nbsp;≥M4</span><span class="val" id="stat-quakes">--</span><span class="delta" id="dlt-quakes"></span></div>
+  <div class="stat"><span class="lab">CYCLONES</span><span class="val" id="stat-cyclones">--</span><span class="delta" id="dlt-cyclones"></span></div>
+  <div class="stat"><span class="lab">CONFLICT&nbsp;WIRE</span><span class="val" id="stat-conflict">--</span><span class="delta" id="dlt-conflict"></span></div>
+  <div class="stat"><span class="lab">SITREPS</span><span class="val" id="stat-relief">--</span><span class="delta" id="dlt-relief"></span></div>
+  <div class="stat"><span class="lab">GDACS</span><span class="val" id="stat-gdacs">--</span><span class="delta" id="dlt-gdacs"></span></div>
+  <div class="stat"><span class="lab">Kp</span><span class="val" id="stat-kp">--</span></div>
+  <div id="zulu-strip" class="zulu"></div>
+</div>
+
+<!-- Theater spotlight bar (sitting between the status strip and the news ticker). -->
+<div id="theaterbar">
+  <span class="t-lab">THEATER</span>
+  <button class="t-btn" data-theater="global">Global</button>
+  <button class="t-btn" data-theater="ukr">Ukraine / Russia</button>
+  <button class="t-btn" data-theater="isr">Israel-Gaza-Lebanon</button>
+  <button class="t-btn" data-theater="sdn">Sudan / Horn</button>
+  <button class="t-btn" data-theater="tw">Taiwan / S. China Sea</button>
+  <button class="t-btn" data-theater="sahel">Sahel</button>
+  <button class="t-btn" data-theater="mex">US&middot;Mex Border</button>
+  <button class="t-btn" data-theater="kor">Korean Peninsula</button>
+  <div class="spacer"></div>
+  <button class="t-action" onclick="speakBriefing()" title="Read situation report aloud">&#x1F50A; SPEAK</button>
+  <button class="t-action" onclick="generateBriefing()" title="Print-ready situation report">&#x1F4DD; BRIEF</button>
+  <button class="t-action" onclick="toggleFullscreen()" title="Fullscreen (F)">&#x26F6; FULL</button>
+</div>
+
+<!-- Breaking-event banner (hidden until something fires it). -->
+<div id="breaking-banner"></div>
+
+<div class="tickerband" id="ticker-news"><div class="ticker-track" id="ticker-news-track"></div></div>
+<div class="tickerband" id="ticker-crypto"><div class="ticker-track" id="ticker-crypto-track"></div></div>
+
+<div id="main">
+
+  <!-- LEFT RAIL: focus panels (quakes, severe weather, conflict) -->
+  <div id="col-left">
+    <section class="panel" id="panel-quakes">
+      <header><span class="icon q">EQ</span><span class="title">Earthquakes</span><span class="badge" id="bd-quakes">&middot;</span></header>
+      <div class="body" id="body-quakes"><div class="empty">Loading USGS&hellip;</div></div>
+    </section>
+    <section class="panel" id="panel-weather">
+      <header><span class="icon wx">WX</span><span class="title">Severe Weather US</span><span class="badge" id="bd-weather">&middot;</span></header>
+      <div class="body" id="body-weather"><div class="empty">Loading NWS&hellip;</div></div>
+    </section>
+    <section class="panel" id="panel-conflict">
+      <header><span class="icon cnf">CONFL</span><span class="title">Conflict Watch</span><span class="badge" id="bd-conflict">&middot;</span></header>
+      <div class="body" style="padding:0">
+        <div class="stream-wrap"><div class="stream stream-track" id="body-conflict"><div class="empty">Loading GDELT&hellip;</div></div></div>
+      </div>
+    </section>
+  </div>
+
+  <!-- CENTER: world map -->
+  <div id="pane-map">
+    <div id="map"></div>
+    <div id="map-legend">
+      <div class="li"><span class="sw q"></span> Earthquakes</div>
+      <div class="li"><span class="sw c"></span> Conflict events</div>
+      <div class="li"><span class="sw" style="background:#ff7a3d"></span> Wildfires</div>
+      <div class="li"><span class="sw" style="background:#ff5a4d"></span> Volcanoes</div>
+      <div class="li"><span class="sw w"></span> NWS warnings</div>
+      <div class="li"><span class="sw s"></span> Tropical cyclones</div>
+      <div class="li"><span class="sw i"></span> ISS</div>
+      <div class="li" style="color:var(--accent);margin-top:4px">Click map → weather</div>
+    </div>
+    <div id="iss-readout">ISS &middot; --, --</div>
+    <div id="map-status"></div>
+    <div id="map-coord">-- &middot; --</div>
+  </div>
+
+  <!-- RIGHT RAIL: media + sitrep -->
+  <div id="col-right">
+    <section class="panel" id="panel-tv">
+      <header>
+        <span class="icon tv">LIVE</span><span class="title">Live TV</span>
+        <span class="badge" style="background:rgba(255,90,77,.18);color:var(--hot)">on air</span>
+      </header>
+      <div id="tv-stack">
+        <div class="tv-tabs" id="tv-tabs"></div>
+        <div id="tv-frame-wrap">
+          <iframe id="tv-frame" referrerpolicy="strict-origin-when-cross-origin" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe>
+          <div id="tv-overlay"><div class="play"></div><span id="tv-overlay-label">Start stream</span></div>
+          <a id="tv-open" href="https://www.youtube.com/" target="_blank" rel="noopener noreferrer">Open on YouTube</a>
+        </div>
+      </div>
+    </section>
+    <section class="panel" id="panel-cyclones">
+      <header><span class="icon storm">HZRD</span><span class="title">Major Hazards</span><span class="badge" id="bd-cyclones">&middot;</span></header>
+      <div class="body" id="body-cyclones"><div class="empty">Loading&hellip;</div></div>
+    </section>
+    <section class="panel" id="panel-relief">
+      <header><span class="icon relief">OCHA</span><span class="title">Humanitarian Sitreps</span><span class="badge" id="bd-relief">&middot;</span></header>
+      <div class="body" style="padding:0">
+        <div class="stream-wrap"><div class="stream stream-track slow" id="body-relief"><div class="empty">Loading ReliefWeb&hellip;</div></div></div>
+      </div>
+    </section>
+  </div>
+
+  <!-- BOTTOM ROW: bitcoin + optional panels -->
+  <div id="pane-bottom">
+    <section class="panel" id="panel-btc">
+      <header><span class="icon btc">BTC</span><span class="title">Bitcoin Pulse</span><span class="badge" id="bd-btc">&middot;</span></header>
+      <div id="fee-stack"></div>
+      <div id="fee-summary">
+        <div class="stat-row btc-price full"><span class="label">BTC / USD</span><b id="btc-price">&middot;</b></div>
+        <div class="stat-row"><span class="label">Height</span><b id="btc-height">&middot;</b></div>
+        <div class="stat-row"><span class="label">Last block</span><b id="btc-last-block">&middot;</b></div>
+        <div class="stat-row"><span class="label">Mempool tx</span><b id="btc-mempool-count">&middot;</b></div>
+        <div class="stat-row"><span class="label">Mempool</span><b id="btc-mempool-vsize">&middot;</b></div>
+        <div class="stat-row btc-fees"><span class="label">Fast fee</span><b id="btc-fast-fee">&middot;</b></div>
+        <div class="stat-row btc-fees"><span class="label">Economy</span><b id="btc-econ-fee">&middot;</b></div>
+        <div class="stat-row full"><span class="label">Next adjustment</span><b id="btc-adj">&middot;</b></div>
+        <div class="stat-row full"><span class="label">Δ Difficulty</span><b id="btc-diff-change">&middot;</b></div>
+      </div>
+    </section>
+
+    <section class="panel" id="panel-wiki">
+      <header><span class="icon wiki">WIKI</span><span class="title">Wikipedia Edits</span><span class="badge" id="bd-wiki">&middot;</span></header>
+      <div class="body" style="padding:0">
+        <div class="stream-wrap"><div class="stream stream-track fast" id="body-wiki"><div class="empty">Connecting&hellip;</div></div></div>
+      </div>
+    </section>
+
+    <section class="panel" id="panel-gh">
+      <header><span class="icon gh">GH</span><span class="title">GitHub Pulse</span><span class="badge" id="bd-gh">&middot;</span></header>
+      <div class="body" style="padding:0">
+        <div class="stream-wrap"><div class="stream stream-track" id="body-gh"><div class="empty">Loading&hellip;</div></div></div>
+      </div>
+    </section>
+
+    <section class="panel" id="panel-sec">
+      <header><span class="icon sec">SEC</span><span class="title">SEC EDGAR</span><span class="badge" id="bd-sec">&middot;</span></header>
+      <div class="body" style="padding:0">
+        <div class="stream-wrap"><div class="stream stream-track slow" id="body-sec"><div class="empty">Loading&hellip;</div></div></div>
+      </div>
+    </section>
+
+    <section class="panel" id="panel-talk">
+      <header><span class="icon talk">TALK</span><span class="title">HN &middot; Reddit</span><span class="badge" id="bd-talk">&middot;</span></header>
+      <div class="body" style="padding:0">
+        <div class="stream-wrap"><div class="stream stream-track slow" id="body-talk"><div class="empty">Loading&hellip;</div></div></div>
+      </div>
+    </section>
+  </div>
+</div>
+
+<!-- ============ settings panel ============ -->
+<button id="settings-close" onclick="closeSettings()" title="Close settings (Esc)">&times;</button>
+<div id="pane-settings">
+  <div class="settings-wrap">
+    <div class="settings-back-bar">
+      <button class="back-btn" onclick="closeSettings()">&larr; Back to dashboard</button>
+      <span class="hint">or press <b>Esc</b></span>
+    </div>
+    <h1>Foglight &middot; Settings</h1>
+
+    <div class="settings-section">
+      <h2>Panels</h2>
+      <div class="sub">Toggle the panels you want visible. The map, tickers, earthquakes, and severe weather are always on &mdash; they are the focus of foglight. Everything below can be hidden.</div>
+      <div id="panel-toggles"></div>
+    </div>
+
+    <div class="settings-section">
+      <h2>Watchlist &mdash; keyword alerts</h2>
+      <div class="sub">One keyword or phrase per line. Any conflict-wire, humanitarian-sitrep, or news-ticker item matching any keyword is highlighted; new matches trigger the breaking-event banner. Case-insensitive substring match.</div>
+      <textarea id="watchlist-text" style="width:100%;min-height:120px;background:var(--bg);border:1px solid var(--border-hi);color:var(--text);padding:8px 10px;border-radius:3px;font:11.5px 'JetBrains Mono',monospace;outline:none" placeholder="Iran nuclear&#10;Houthi missile&#10;Taiwan Strait&#10;Belarus border"></textarea>
+      <div class="setting-row">
+        <div class="lbl"></div>
+        <div class="right-actions">
+          <button onclick="saveWatchlist()">Save watchlist</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="settings-section">
+      <h2>Map annotations</h2>
+      <div class="sub">Right-click any point on the world map to pin a labeled marker (your own intel notes). Pins persist across launches and survive reboots. Click an existing pin to remove it.</div>
+      <div id="annotation-list"></div>
+      <div class="setting-row">
+        <div class="lbl"></div>
+        <div class="right-actions">
+          <button class="danger" onclick="clearAllAnnotations()">Clear all pins</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="settings-section">
+      <h2>Live TV</h2>
+      <div class="sub">Foglight embeds free YouTube live streams of major news networks. Audio is muted by default (browser autoplay rule). Click the unmute button inside the YouTube player to hear it. Picking a station here also makes it the default on next launch.</div>
+      <div id="tv-channels"></div>
+    </div>
+
+    <div class="settings-section">
+      <h2>Out-of-the-box data</h2>
+      <div class="sub">Foglight ships these sources live with no signup: GDELT (world events &amp; conflict), USGS (earthquakes, volcanoes), NWS (US severe weather), NOAA NHC (tropical cyclones), NOAA SWPC (space weather), ReliefWeb (humanitarian sitreps), mempool.space, Wikipedia EventStreams, GitHub events, ISS, CoinPaprika, Frankfurter (forex), SEC EDGAR, Hacker News, Reddit.</div>
+    </div>
+
+    <div class="settings-section">
+      <h2>Optional API keys</h2>
+      <div class="sub">Each key unlocks a panel. Signup is free at every link. Keys live only on disk inside this foglight instance &mdash; nothing leaves your machine.</div>
+
+      <div class="setting-row">
+        <div class="lbl">
+          <h3>AISStream.io &middot; Marine traffic</h3>
+          <p>Live global ship positions on the world map. Free key at <a target="_blank" rel="noopener" href="https://aisstream.io/authenticate">aisstream.io</a>.</p>
+        </div>
+        <div class="right-actions">
+          <input type="password" id="key-aisstream" placeholder="paste key" autocomplete="off">
+          <span class="key-status" id="ks-aisstream">not set</span>
+        </div>
+      </div>
+
+      <div class="setting-row">
+        <div class="lbl">
+          <h3>NASA FIRMS &middot; Wildfires</h3>
+          <p>Active fire detections (MODIS + VIIRS), near-real-time. Free MAP_KEY at <a target="_blank" rel="noopener" href="https://firms.modaps.eosdis.nasa.gov/api/map_key/">firms.modaps.eosdis.nasa.gov/api/map_key</a>.</p>
+        </div>
+        <div class="right-actions">
+          <input type="password" id="key-nasa_firms" placeholder="paste MAP_KEY" autocomplete="off">
+          <span class="key-status" id="ks-nasa_firms">not set</span>
+        </div>
+      </div>
+
+      <div class="setting-row">
+        <div class="lbl">
+          <h3>OpenSky &middot; Flights overhead</h3>
+          <p>OAuth2 client credentials. Create an account at <a target="_blank" rel="noopener" href="https://opensky-network.org/index.php?option=com_users&view=registration">opensky-network.org</a>, then create an API client in your account.</p>
+        </div>
+        <div class="right-actions">
+          <input type="text" id="key-opensky_id" placeholder="client id" autocomplete="off" style="width:130px">
+          <input type="password" id="key-opensky_secret" placeholder="client secret" autocomplete="off" style="width:130px">
+          <span class="key-status" id="ks-opensky_id">not set</span>
+        </div>
+      </div>
+
+      <div class="setting-row">
+        <div class="lbl">
+          <h3>OpenWeatherMap &middot; Global severe weather</h3>
+          <p>Extends Severe Weather beyond the US plus global radar tiles. Free key at <a target="_blank" rel="noopener" href="https://openweathermap.org/api">openweathermap.org/api</a>.</p>
+        </div>
+        <div class="right-actions">
+          <input type="password" id="key-openweathermap" placeholder="paste key" autocomplete="off">
+          <span class="key-status" id="ks-openweathermap">not set</span>
+        </div>
+      </div>
+
+      <div class="setting-row">
+        <div class="lbl">
+          <h3>FRED &middot; Macro indicators</h3>
+          <p>Fed funds rate, 10Y yield, CPI, unemployment, VIX. Free key at <a target="_blank" rel="noopener" href="https://fred.stlouisfed.org/docs/api/api_key.html">fred.stlouisfed.org</a>.</p>
+        </div>
+        <div class="right-actions">
+          <input type="password" id="key-fred" placeholder="paste key" autocomplete="off">
+          <span class="key-status" id="ks-fred">not set</span>
+        </div>
+      </div>
+
+      <div class="setting-row">
+        <div class="lbl">
+          <h3>Finnhub &middot; Stock markets</h3>
+          <p>Indices, watchlist, earnings, market news. Free key at <a target="_blank" rel="noopener" href="https://finnhub.io/register">finnhub.io</a>.</p>
+        </div>
+        <div class="right-actions">
+          <input type="password" id="key-finnhub" placeholder="paste key" autocomplete="off">
+          <span class="key-status" id="ks-finnhub">not set</span>
+        </div>
+      </div>
+
+      <div class="setting-row">
+        <div class="lbl"></div>
+        <div class="right-actions">
+          <button onclick="saveKeys()">Save keys</button>
+          <button class="danger" onclick="clearAllKeys()">Clear all</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="settings-section">
+      <h2>Ambient audio</h2>
+      <div class="sub">Subtle audio cues fire when significant events happen. Off by default. All sounds are synthesized on the fly &mdash; no audio files included.</div>
+
+      <div class="setting-row">
+        <div class="lbl"><h3>Master &middot; ambient audio</h3><p>Top-level toggle. Everything below is muted while this is off.</p></div>
+        <div class="toggle" id="aud-master" onclick="toggleAudio('master')"></div>
+      </div>
+      <div class="setting-row">
+        <div class="lbl"><h3>Earthquakes &ge; M4.0</h3><p>Pitch scaled to magnitude.</p></div>
+        <div class="toggle" id="aud-earthquake" onclick="toggleAudio('earthquake')"></div>
+      </div>
+      <div class="setting-row">
+        <div class="lbl"><h3>Tornado warnings</h3><p>Soft chime when NWS issues a tornado warning.</p></div>
+        <div class="toggle" id="aud-tornado" onclick="toggleAudio('tornado')"></div>
+      </div>
+      <div class="setting-row">
+        <div class="lbl"><h3>Hurricane advisories</h3><p>Subdued horn.</p></div>
+        <div class="toggle" id="aud-hurricane" onclick="toggleAudio('hurricane')"></div>
+      </div>
+      <div class="setting-row">
+        <div class="lbl"><h3>Bitcoin block mined</h3><p>Quiet thunk on each new block.</p></div>
+        <div class="toggle" id="aud-bitcoin_block" onclick="toggleAudio('bitcoin_block')"></div>
+      </div>
+    </div>
+
+    <div class="settings-section">
+      <h2>About</h2>
+      <div class="sub">
+        Foglight runs entirely on your machine as a local Windows desktop app.
+        The bundled server listens only on <code>127.0.0.1</code>, and all
+        caches, settings, and saved keys live under
+        <code>%LOCALAPPDATA%\Foglight\</code>.
+      </div>
+      <div class="setting-row">
+        <div class="lbl"><h3>Close foglight</h3><p>Same as the X button &mdash; stops the local server and closes the app.</p></div>
+        <button class="danger" onclick="shutdownApp()">Shut down</button>
+      </div>
+      <div class="setting-row">
+        <div class="lbl"></div>
+        <div class="right-actions">
+          <button onclick="closeSettings()">Back</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ modal + shutdown overlay ============ -->
+<div id="modal-overlay" class="modal-overlay">
+  <div class="modal">
+    <h3 id="modal-title">Confirm</h3>
+    <p   id="modal-msg">&hellip;</p>
+    <div class="modal-actions">
+      <button class="modal-btn" id="modal-cancel">Cancel</button>
+      <button class="modal-btn danger" id="modal-ok">OK</button>
+    </div>
+  </div>
+</div>
+
+<!-- NWS / conflict alert drawer -->
+<div id="alert-drawer">
+  <header>
+    <div class="ad-event" id="ad-event">Alert</div>
+    <button class="ad-close" onclick="closeAlertDrawer()" title="Close (Esc)">&times;</button>
+  </header>
+  <div class="ad-body" id="ad-body">&hellip;</div>
+</div>
+
+<div id="shutdown-overlay">
+  <div class="pulse-big"></div>
+  <div>
+    <div style="color:#fff;font-size:14px;margin-bottom:4px">Shutting down Foglight</div>
+    <div>Stopping the local server and closing the app&hellip;</div>
+  </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+<script src="/app.js"></script>
+</body>
+</html>

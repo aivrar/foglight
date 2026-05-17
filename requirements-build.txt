@@ -1,0 +1,4 @@
+pyinstaller>=6.20
+pillow>=11.0
+pywebview>=6.2
+pythonnet>=3.0

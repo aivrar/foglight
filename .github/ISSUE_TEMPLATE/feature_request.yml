@@ -1,0 +1,39 @@
+name: Feature request
+description: Suggest a Foglight feature, panel, source, or workflow
+title: "[Feature]: "
+labels:
+  - enhancement
+body:
+  - type: textarea
+    id: summary
+    attributes:
+      label: What should Foglight do?
+      description: Describe the feature or improvement.
+      placeholder: Add a panel for...
+    validations:
+      required: true
+  - type: textarea
+    id: use-case
+    attributes:
+      label: Why is it useful?
+      description: Explain the workflow or decision this would improve.
+    validations:
+      required: true
+  - type: textarea
+    id: source
+    attributes:
+      label: Data source or dependency
+      description: If this needs a new API, feed, library, or model, link it here.
+  - type: dropdown
+    id: key
+    attributes:
+      label: Does it require an API key?
+      options:
+        - No
+        - Yes
+        - Not sure
+  - type: textarea
+    id: notes
+    attributes:
+      label: Extra notes
+      description: Mockups, screenshots, examples, links, or edge cases.

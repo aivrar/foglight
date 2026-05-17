@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Data source credits
+    url: https://github.com/aivrar/foglight/blob/main/CREDITS.md
+    about: Check existing source credits before suggesting a new data provider.

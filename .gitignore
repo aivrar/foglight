@@ -1,0 +1,41 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Local Foglight runtime state
+cache/
+logs/
+state/
+wsl/
+webview2_data/
+
+# Bundled/generated Linux images are release artifacts, not source.
+linux/*.tar
+linux/*.tar.gz
+linux/*.zip
+linux/*.setup_hash
+
+# Browser/dev-tool artifacts
+.playwright-mcp/
+playwright-report/
+test-results/
+*.trace.zip
+
+# Build outputs
+build/
+dist/
+*.spec
+!foglight_native.spec
+
+# Local editor and OS noise
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/
+
+# Local environment files
+.env
+.env.*
+!.env.example
