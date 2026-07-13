@@ -31,6 +31,9 @@ const settings = {
 
 const deterministicMapTile = '<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256">'
   + '<rect width="256" height="256" fill="#15293a"/></svg>';
+// Windows runners can rasterize a few anti-aliased edge pixels differently.
+// Keep the allowance small enough that layout or component regressions still fail.
+const VISUAL_MAX_DIFF_PIXEL_RATIO = 0.0001;
 const pageErrors = new WeakMap();
 
 async function downloadText(download) {
@@ -1108,7 +1111,10 @@ for (const viewport of [
     const drawer = page.locator('#incident-drawer');
     await expect(drawer).toBeVisible();
     await expect(page.locator('.drawer-health-list')).toContainText('USGS');
-    await expect(drawer).toHaveScreenshot(viewport.name, { animations: 'disabled' });
+    await expect(drawer).toHaveScreenshot(viewport.name, {
+      animations: 'disabled',
+      maxDiffPixelRatio: VISUAL_MAX_DIFF_PIXEL_RATIO,
+    });
   });
 }
 
@@ -1224,6 +1230,7 @@ test('[overview watch] visual matches the expanded watch-center baseline', async
   await page.locator('.watch-settings-panel').evaluate(node => { node.open = true; });
   await expect(page.locator('#watch-center')).toHaveScreenshot('watch-center-1280x1000.png', {
     animations: 'disabled',
+    maxDiffPixelRatio: VISUAL_MAX_DIFF_PIXEL_RATIO,
   });
 });
 
@@ -1235,6 +1242,7 @@ test('[overview watch] visual matches the mobile watch-center baseline', async (
   await page.locator('.watch-settings-panel').evaluate(node => { node.open = true; });
   await expect(page.locator('#watch-center')).toHaveScreenshot('watch-center-520x900.png', {
     animations: 'disabled',
+    maxDiffPixelRatio: VISUAL_MAX_DIFF_PIXEL_RATIO,
   });
 });
 
@@ -1583,6 +1591,7 @@ for (const viewport of [
       animations: 'disabled',
       mask: [page.locator('#clock')],
       maskColor: '#08101f',
+      maxDiffPixelRatio: VISUAL_MAX_DIFF_PIXEL_RATIO,
     });
   });
 }
@@ -1604,6 +1613,7 @@ for (const viewport of [
       animations: 'disabled',
       mask: [page.locator('#clock'), page.locator('#zulu-strip')],
       maskColor: '#08101f',
+      maxDiffPixelRatio: VISUAL_MAX_DIFF_PIXEL_RATIO,
     });
   });
 }
