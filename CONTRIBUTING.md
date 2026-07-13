@@ -7,14 +7,17 @@ exe, run it, and get a working live-data dashboard.
 ## Development Setup
 
 ```powershell
-python -m pip install -r requirements-build.txt
+python -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r requirements-build.txt -r requirements-dev.txt
 ```
 
 Run source checks:
 
 ```powershell
-python -m py_compile .\foglight_server.py .\foglight_native.py .\build_windows.py
+.\.venv\Scripts\python.exe -m ruff check .
+.\.venv\Scripts\python.exe -m pytest -q
 node --check .\web\app.js
+.\.venv\Scripts\python.exe -m pip_audit -r .\requirements-build.txt
 ```
 
 Run the local server:
@@ -24,7 +27,7 @@ $env:FOGLIGHT_APP_DIR = (Get-Location).Path
 $env:FOGLIGHT_CACHE_DIR = "$env:TEMP\foglight-cache"
 $env:FOGLIGHT_STATE_DIR = "$env:TEMP\foglight-state"
 $env:FOGLIGHT_LOG_DIR = "$env:TEMP\foglight-logs"
-python .\foglight_server.py 9787
+.\.venv\Scripts\python.exe .\foglight_server.py 9787
 ```
 
 Then open `http://127.0.0.1:9787/`.
@@ -37,6 +40,7 @@ Then open `http://127.0.0.1:9787/`.
 - Credit new public data sources in `CREDITS.md` and
   `docs/DATA_SOURCES.md`.
 - Add or update docs when user-facing behavior changes.
+- Add regression tests for bug fixes and security-boundary changes.
 - Prefer focused changes over broad rewrites.
 
 ## Data Sources
@@ -54,7 +58,7 @@ The built executable belongs in GitHub Releases, not in the repository. Build it
 with:
 
 ```powershell
-python .\build_windows.py
+.\.venv\Scripts\python.exe .\build_windows.py
 ```
 
 ## License

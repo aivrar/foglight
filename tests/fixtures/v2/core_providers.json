@@ -1,0 +1,72 @@
+{
+  "usgs_earthquakes": {
+    "format": "json",
+    "valid": {"type":"FeatureCollection","features":[{"type":"Feature","id":"us7000fixture","geometry":{"type":"Point","coordinates":[139.7,35.6,20]},"properties":{"mag":6.2,"place":"Fixture Coast","title":"M 6.2 - Fixture Coast","time":1783713600000,"updated":1783713900000,"url":"https://earthquake.usgs.gov/earthquakes/eventpage/us7000fixture","status":"reviewed","tsunami":1,"sig":600}}]},
+    "expected_count": 1
+  },
+  "nws_alerts": {
+    "format": "json",
+    "valid": {"type":"FeatureCollection","features":[{"id":"https://api.weather.gov/alerts/fixture","type":"Feature","geometry":{"type":"Polygon","coordinates":[[[-100,40],[-99,40],[-99,41],[-100,40]]]},"properties":{"id":"urn:oid:fixture-alert","event":"Severe Thunderstorm Warning","headline":"Severe weather fixture","description":"Fixture description.","instruction":"Move indoors.","messageType":"Alert","severity":"Severe","urgency":"Immediate","certainty":"Observed","onset":"2026-07-10T20:00:00Z","effective":"2026-07-10T19:55:00Z","expires":"2026-07-10T22:00:00Z","sent":"2026-07-10T19:54:00Z","areaDesc":"Fixture County","senderName":"Fixture Weather Office","geocode":{"UGC":["COC001"]}}}]},
+    "expected_count": 1
+  },
+  "noaa_aviation_weather": {
+    "format": "json",
+    "valid": {"type":"FeatureCollection","features":[{"type":"Feature","geometry":{"type":"Polygon","coordinates":[[[-101.0,39.0],[-97.0,39.0],[-97.0,42.0],[-101.0,42.0],[-101.0,39.0]]]},"properties":{"icaoId":"KZDV","airSigmetType":"SIGMET","alphaChar":"C","hazard":"CONVECTIVE","seriesId":"3E","validTimeFrom":"2026-07-10T21:00:00Z","validTimeTo":"2026-07-11T01:00:00Z","severity":5,"altitudeHi1":45000,"altitudeHi2":null,"altitudeLow1":null,"altitudeLow2":null,"movementDir":250,"movementSpd":20,"rawAirSigmet":"KZDV SIGMET 3E VALID 102100/110100 CONVECTIVE ACTIVITY."}},{"type":"Feature","geometry":{"type":"Polygon","coordinates":[[[138.0,34.0],[141.0,34.0],[141.0,37.0],[138.0,37.0],[138.0,34.0]]]},"properties":{"icaoId":"RJJJ","airSigmetType":"SIGMET","alphaChar":"V","hazard":"VOLCANIC ASH","seriesId":"2A","validTimeFrom":"2026-07-10T20:30:00Z","validTimeTo":"2026-07-11T02:30:00Z","severity":4,"altitudeHi1":30000,"altitudeHi2":null,"altitudeLow1":10000,"altitudeLow2":null,"movementDir":90,"movementSpd":15,"rawAirSigmet":"RJJJ SIGMET 2A VALID 102030/110230 VOLCANIC ASH."}}]},
+    "expected_count": 2
+  },
+  "openfema_declarations": {
+    "format": "json",
+    "valid": {"metadata":{"skip":0,"top":100,"count":1},"DisasterDeclarationsSummaries":[{"femaDeclarationString":"DR-4999-CO","disasterNumber":4999,"state":"CO","declarationType":"DR","declarationDate":"2026-07-10T18:00:00.000Z","fyDeclared":2026,"incidentType":"Severe Storm","declarationTitle":"SEVERE STORMS AND FLOODING","ihProgramDeclared":true,"iaProgramDeclared":false,"paProgramDeclared":true,"hmProgramDeclared":true,"incidentBeginDate":"2026-07-05T00:00:00.000Z","incidentEndDate":"2026-07-09T23:59:00.000Z","disasterCloseoutDate":null,"tribalRequest":false,"fipsStateCode":"08","fipsCountyCode":"001","placeCode":"99001","designatedArea":"Adams (County)","lastRefresh":"2026-07-10T18:20:00.000Z","hash":"fixture-hash","id":"fixture-openfema-1"}]},
+    "expected_count": 1
+  },
+  "nasa_jpl_fireballs": {
+    "format": "json",
+    "valid": {"signature":{"version":"1.2","source":"NASA/JPL Fireball Data API"},"count":"2","fields":["date","energy","impact-e","lat","lat-dir","lon","lon-dir","alt","vel"],"data":[["2026-07-01 12:34:56","2.3","0.082","10.5","N","20.25","W","32.1","14.2"],["2026-06-20 01:02:03","0.4","0.016",null,null,null,null,null,null]]},
+    "expected_count": 2
+  },
+  "ndbc_observations": {
+    "format": "xml",
+    "valid": "<rss xmlns:georss=\"http://www.georss.org/georss\"><channel><item><pubDate>Sat, 11 Jul 2026 21:44:58 +0000</pubDate><title>Station 46042 - MONTEREY</title><description><![CDATA[<b>July 11, 2026 1:10 pm PST</b><br><b>Location:</b> 36.787N 122.408W.<br><b>Wind Direction:</b> NW (310&#176;)<br><b>Wind Speed:</b> 19 knots<br><b>Wind Gust:</b> 23 knots<br><b>Significant Wave Height:</b> 5 ft<br><b>Dominant Wave Period:</b> 15 sec<br><b>Atmospheric Pressure:</b> 29.93 in (1013.6 mb)<br><b>Air Temperature:</b> 56&#176;F (13.3&#176;C)<br><b>Water Temperature:</b> 60&#176;F (15.3&#176;C)<br>]]></description><link>https://www.ndbc.noaa.gov/station_page.php?station=46042</link><guid isPermaLink=\"false\">NDBC-46042-20260711211000</guid><georss:point>36.787 -122.408</georss:point></item></channel></rss>",
+    "expected_count": 1
+  },
+  "noaa_coops_water_levels": {
+    "format": "json",
+    "valid": {"metadata":{"id":"9414290","name":"San Francisco","lat":"37.8063","lon":"-122.4659"},"data":[{"t":"2026-07-11 21:36","v":"1.099","s":"0.048","f":"1,0,0,0","q":"p"}]},
+    "expected_count": 1
+  },
+  "nhc_storms": {
+    "format": "json",
+    "valid": {"activeStorms":[{"id":"al012026","binNumber":"AT1","name":"ALPHA","classification":"HU","intensity":85,"pressure":970,"latitude":"22.9N","longitude":"79.9W","latitude_numeric":22.9,"longitude_numeric":-79.9,"movementDir":280,"movementSpeed":9,"lastUpdate":"2026-07-10T20:00:00Z","publicAdvisory":{"advNum":"042","issuance":"2026-07-10T19:00:00Z","url":"https://www.nhc.noaa.gov/text/MIATCPAT1.shtml"}}]},
+    "expected_count": 1
+  },
+  "noaa_tsunami": {
+    "format": "xml",
+    "valid": "<feed xmlns=\"http://www.w3.org/2005/Atom\" xmlns:georss=\"http://www.georss.org/georss\"><entry><id>PAAQ/2026/07/10/fixture/1</id><title>Tsunami Warning for Fixture Coast</title><summary>Warning remains in effect.</summary><updated>2026-07-10T20:00:00Z</updated><georss:point>35.6 139.7</georss:point><link href=\"https://www.tsunami.gov/fixture-1\"/></entry><entry><id>PAAQ/2026/07/10/fixture/2</id><title>Tsunami Warning Cancellation</title><summary>The warning is canceled.</summary><updated>2026-07-10T21:00:00Z</updated><link href=\"https://www.tsunami.gov/fixture-2\"/></entry></feed>",
+    "expected_count": 2
+  },
+  "gdacs": {
+    "format": "json",
+    "valid": {"type":"FeatureCollection","features":[{"type":"Feature","id":"gdacs-eq-1","geometry":{"type":"Point","coordinates":[139.7,35.6]},"properties":{"eventtype":"EQ","eventid":"1001","episodeid":"1","name":"Earthquake in Fixture Region","description":"GDACS fixture description.","alertlevel":"Orange","country":"Japan","affectedcountries":[{"iso2":"JP","iso3":"JPN","countryname":"Japan"}],"iscurrent":"true","fromdate":"2026-07-10T20:00:00","todate":"2026-07-11T20:00:00","datemodified":"2026-07-10T20:05:00","population":12000,"severitydata":{"severity":6.2,"severityunit":"Mw"},"url":{"report":"https://www.gdacs.org/report.aspx?eventid=1001","details":"https://www.gdacs.org/details/1001"}}}]},
+    "expected_count": 1
+  },
+  "nasa_eonet": {
+    "format": "json",
+    "valid": {"events":[{"id":"EONET_1","title":"Fixture Wildfire","description":"Curated fixture event.","link":"https://eonet.gsfc.nasa.gov/api/v3/events/EONET_1","closed":null,"categories":[{"id":"wildfires","title":"Wildfires"}],"sources":[{"id":"InciWeb","url":"https://inciweb.wildfire.gov/fixture"}],"geometry":[{"date":"2026-07-09T20:00:00Z","type":"Point","coordinates":[-106,38]},{"date":"2026-07-10T20:00:00Z","type":"Point","coordinates":[-105,39],"magnitudeValue":1200,"magnitudeUnit":"acres","magnitudeDescription":"Area"}]}]},
+    "expected_count": 1
+  },
+  "smithsonian_volcano": {
+    "format": "xml",
+    "valid": "<rss><channel><item><guid>smithsonian-fixture-1</guid><title>Fixture Volcano</title><description>Weekly report of observed activity.</description><link>https://volcano.si.edu/fixture</link><pubDate>Fri, 10 Jul 2026 20:00:00 GMT</pubDate></item></channel></rss>",
+    "expected_count": 1
+  },
+  "noaa_space_weather": {
+    "format": "json-array",
+    "valid": [{"time_tag":"2026-07-10T20:00:00","Kp":5.33,"a_running":18,"station_count":8}],
+    "expected_count": 1
+  },
+  "reliefweb_rss": {
+    "format": "xml",
+    "valid": "<rss xmlns:dc=\"http://purl.org/dc/elements/1.1/\"><channel><item><guid>reliefweb-fixture-1</guid><title>Fixture Humanitarian Update</title><description>Institutional situation report.</description><link>https://reliefweb.int/report/fixture</link><pubDate>Fri, 10 Jul 2026 20:00:00 GMT</pubDate><dc:creator>Fixture Humanitarian Organization</dc:creator></item></channel></rss>",
+    "expected_count": 1
+  }
+}

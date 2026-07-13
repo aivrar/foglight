@@ -1,0 +1,18 @@
+{
+  "name": "foglight-development",
+  "private": true,
+  "type": "module",
+  "version": "0.2.0",
+  "description": "Development-only browser and JavaScript test tooling for Foglight",
+  "scripts": {
+    "test:js": "node --test --experimental-test-coverage tests/js/*.test.mjs",
+    "test:browser": "playwright test",
+    "test:browser:update": "playwright test --update-snapshots",
+    "measure:browser": "node scripts/measure_browser_baseline.mjs"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "4.12.1",
+    "@playwright/test": "1.61.1",
+    "leaflet": "1.9.4"
+  }
+}

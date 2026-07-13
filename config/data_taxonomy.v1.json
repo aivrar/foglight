@@ -1,0 +1,34 @@
+{
+  "schema_version": 1,
+  "categories": [
+    {"id": "earthquake", "lane": "hazards", "default_retention_days": 30},
+    {"id": "weather_alert", "lane": "hazards", "default_retention_days": 14},
+    {"id": "tropical_cyclone", "lane": "hazards", "default_retention_days": 30},
+    {"id": "tsunami", "lane": "hazards", "default_retention_days": 30},
+    {"id": "volcano", "lane": "hazards", "default_retention_days": 90},
+    {"id": "wildfire", "lane": "hazards", "default_retention_days": 14},
+    {"id": "natural_event", "lane": "hazards", "default_retention_days": 30},
+    {"id": "disaster", "lane": "hazards", "default_retention_days": 30},
+    {"id": "disaster_declaration", "lane": "hazards", "default_retention_days": 365},
+    {"id": "conflict_report", "lane": "world_context", "default_retention_days": 14},
+    {"id": "humanitarian_report", "lane": "world_context", "default_retention_days": 30},
+    {"id": "aircraft", "lane": "mobility", "default_retention_days": 1},
+    {"id": "aviation_hazard", "lane": "mobility", "default_retention_days": 14},
+    {"id": "marine_observation", "lane": "mobility", "default_retention_days": 7},
+    {"id": "water_level", "lane": "mobility", "default_retention_days": 30},
+    {"id": "fireball", "lane": "science", "default_retention_days": 365},
+    {"id": "space_weather", "lane": "science", "default_retention_days": 30},
+    {"id": "orbital_position", "lane": "science", "default_retention_days": 1},
+    {"id": "market_snapshot", "lane": "markets", "default_retention_days": 7},
+    {"id": "technology_activity", "lane": "optional_signal", "default_retention_days": 3},
+    {"id": "news_item", "lane": "world_context", "default_retention_days": 7}
+  ],
+  "provider_tiers": {
+    "1": "Keyless authoritative source required by the default incident view",
+    "2": "Keyless authoritative or primary contextual source",
+    "3": "Keyless supplemental/community source that may degrade independently",
+    "4": "User-configured or user-keyed optional source",
+    "5": "Conditional source pending explicit distribution or commercial-use decision"
+  },
+  "ui_lanes": ["hazards", "world_context", "mobility", "science", "markets", "optional_signal"]
+}

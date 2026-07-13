@@ -12,6 +12,7 @@ a = Analysis(
     datas=[
         ('index.html', '.'),
         ('web', 'web'),
+        ('config', 'config'),
     ] + webview_datas + pythonnet_datas + clr_datas,
     hiddenimports=webview_hiddenimports + pythonnet_hiddenimports + clr_hiddenimports + [
         'webview.platforms.winforms',
@@ -37,7 +38,7 @@ exe = EXE(
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
-    upx=True,
+    upx=False,
     upx_exclude=[],
     runtime_tmpdir=None,
     console=False,
@@ -46,5 +47,6 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon='E:\\foglight\\assets\\foglight.ico',
+    icon='assets\\foglight.ico',
+    version='assets\\foglight-version.txt',
 )

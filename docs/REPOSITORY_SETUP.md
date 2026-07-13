@@ -1,6 +1,7 @@
 # Repository Setup
 
-This directory is prepared for a new GitHub repository under `aivrar`.
+The repository is published at `aivrar/foglight`. This document records the
+recommended GitHub configuration for maintaining it safely.
 
 Suggested repository name:
 
@@ -11,7 +12,7 @@ foglight
 Suggested repository description:
 
 ```text
-Single-exe Windows desktop situation room for live global events: hazards, weather, earthquakes, conflict wires, markets, public web activity, and live news video. No install, Python, WSL, or Docker.
+Portable Windows dashboard for live hazards, severe weather, earthquakes, humanitarian updates, public signals, and news. One EXE, zero setup, no required API keys.
 ```
 
 Suggested homepage URL:
@@ -23,14 +24,24 @@ https://github.com/aivrar/foglight/releases/latest
 Suggested topics:
 
 ```text
-windows desktop-app portable live-dashboard situational-awareness osint threat-intelligence disaster-monitoring emergency-management weather earthquakes live-news rss webview2 pyinstaller python local-first no-install markets public-data
+windows desktop-app portable no-install zero-configuration no-api-key local-first public-data live-dashboard data-visualization geospatial situational-awareness disaster-monitoring natural-hazards emergency-management weather severe-weather earthquakes humanitarian live-news
 ```
 
-These stay within GitHub's topic limit and are meant to catch both desktop-app
-users and people searching for OSINT, hazard monitoring, emergency awareness,
-and live public-data dashboards.
+These use GitHub's 20-topic limit for the product's actual purpose and audience:
+portable Windows software, zero-configuration public data, hazard and weather
+awareness, humanitarian updates, geospatial visualization, and live dashboards.
 
-## Before Creating The Repo
+## Repository Controls
+
+After the CI workflow is present on the default branch:
+
+1. Enable Dependabot alerts and security updates.
+2. Protect `main` and require the `verify-windows-release` CI job.
+3. Require pull requests and block force-pushes/deletion on `main`.
+4. Enable private vulnerability reporting.
+5. Keep release assets immutable after publication where available.
+
+## Before A Release
 
 1. Add screenshots to `docs/screenshots/`.
 2. Run the release checklist in `docs/RELEASE_CHECKLIST.md`.
@@ -38,7 +49,7 @@ and live public-data dashboards.
    release artifact instead of committed.
 4. Keep the MIT `LICENSE` file in the repo root.
 
-## Manual GitHub Creation
+## Historical Manual Creation
 
 Create an empty GitHub repo named `foglight`, then run:
 
@@ -58,7 +69,7 @@ Only run this when you are ready to create the remote:
 gh repo create aivrar/foglight `
   --public `
   --disable-wiki `
-  --description "Single-exe Windows desktop situation room for live global events: hazards, weather, earthquakes, conflict wires, markets, public web activity, and live news video. No install, Python, WSL, or Docker." `
+  --description "Portable Windows dashboard for live hazards, severe weather, earthquakes, humanitarian updates, public signals, and news. One EXE, zero setup, no required API keys." `
   --homepage "https://github.com/aivrar/foglight/releases/latest" `
   --source=. `
   --remote=origin `
@@ -70,15 +81,15 @@ gh repo edit aivrar/foglight `
   --enable-discussions=false `
   --delete-branch-on-merge `
   --homepage "https://github.com/aivrar/foglight/releases/latest" `
-  --add-topic windows,desktop-app,portable,live-dashboard,situational-awareness,osint,threat-intelligence,disaster-monitoring,emergency-management,weather,earthquakes,live-news,rss,webview2,pyinstaller,python,local-first,no-install,markets,public-data
+  --add-topic windows,desktop-app,portable,no-install,zero-configuration,no-api-key,local-first,public-data,live-dashboard,data-visualization,geospatial,situational-awareness,disaster-monitoring,natural-hazards,emergency-management,weather,severe-weather,earthquakes,humanitarian,live-news
 ```
 
-Then tag and create the first release with the single exe:
+Then tag and create the current release with the single exe:
 
 ```powershell
-git tag v0.1.0
-git push origin v0.1.0
-gh release create v0.1.0 .\dist\Foglight.exe#Foglight.exe `
-  --title "Foglight v0.1.0 - Windows Desktop Situation Room" `
-  --notes "Single portable Windows exe. No Python, WSL, Docker, Git, or Node required for users."
+git tag v0.2.0
+git push origin v0.2.0
+gh release create v0.2.0 .\dist\Foglight.exe#Foglight.exe .\dist\SHA256SUMS.txt `
+  --title "Foglight v0.2.0 - Zero-Setup Global Events Dashboard" `
+  --notes-file .\docs\RELEASE_NOTES_v0.2.0.md
 ```

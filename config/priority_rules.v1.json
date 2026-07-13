@@ -1,0 +1,8 @@
+{
+  "version": "priority-v1",
+  "freshness_hours": [1, 6, 24, 168],
+  "corroboration_per_source": 5,
+  "corroboration_cap": 15,
+  "terminal_penalty": -40,
+  "stale_penalty": -20
+}

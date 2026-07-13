@@ -13,37 +13,33 @@
  */
 'use strict';
 
-const API = '';  // same origin
+import { createApiClient } from './api.js';
+import { createCommunityControllers } from './community.js';
+import {
+  byId as $,
+  elapsed as ago,
+  element as el,
+  escapeHtml,
+  formatUtcTime as fmtTime,
+  runWithConcurrency,
+  safeHttpUrl,
+  updateSourceFreshness,
+} from './core.js';
+import { createAppStore } from './store.js';
+import { normalizeInitialSettings } from './settings.js';
+import { createTickerControllers } from './tickers.js';
+import { createOverviewController } from './overview.js';
+import { addBundledWorldBase } from './map-v2.js';
+import { createWatchCenterController } from './watch-center.js';
+import { isQuietHours, normalizeWatchRegions } from './watch-model.js';
+
+const APP_STORE = createAppStore();
+const API_CLIENT = createApiClient();
+const fget = API_CLIENT.request;
+const fgetJSON = API_CLIENT.getJSON;
+const loadSession = API_CLIENT.loadSession;
 
 // ---------- helpers ----------
-const $  = (id) => document.getElementById(id);
-const el = (tag, cls, txt) => {
-  const e = document.createElement(tag);
-  if (cls) e.className = cls;
-  if (txt != null) e.textContent = txt;
-  return e;
-};
-const ago = (sec) => {
-  if (sec < 60)     return sec + 's';
-  if (sec < 3600)   return Math.floor(sec / 60) + 'm';
-  if (sec < 86400)  return Math.floor(sec / 3600) + 'h';
-  return Math.floor(sec / 86400) + 'd';
-};
-const fmtTime = (d) =>
-  String(d.getUTCHours()).padStart(2, '0') + ':' +
-  String(d.getUTCMinutes()).padStart(2, '0');
-
-async function fget(url, opts = {}) {
-  const r = await fetch(API + url, { cache: 'no-store', ...opts });
-  return r;
-}
-async function fgetJSON(url) {
-  const r = await fget(url);
-  const fresh = r.headers.get('X-Foglight-Freshness') || 'unknown';
-  let body = null;
-  try { body = await r.json(); } catch { body = null; }
-  return { body, fresh, status: r.status };
-}
 function setBadge(id, fresh) {
   const b = $(id);
   if (!b) return;
@@ -135,7 +131,7 @@ function installAutoScroll(wrap) {
 
 // ---------- top stats ----------
 let feedsHealth = { live: 0, errored: 0, cached: 0 };
-const FEED_HEALTH_WINDOW = [];
+const FEED_HEALTH_BY_SOURCE = new Map();
 
 function updateClock() {
   const d = new Date();
@@ -152,17 +148,17 @@ function updateFeedsStat() {
   const dot = $('stat-feeds').querySelector('.dot');
   dot.className = 'dot' + (feedsHealth.errored > total / 2 ? ' err'
                          : feedsHealth.errored ? ' stale' : '');
+  window.__foglightFeedHealth = { ...feedsHealth, total };
 }
-function recordFreshness(fresh) {
-  FEED_HEALTH_WINDOW.push(fresh);
-  while (FEED_HEALTH_WINDOW.length > 80) FEED_HEALTH_WINDOW.shift();
-  feedsHealth = { live: 0, errored: 0, cached: 0 };
-  for (const f of FEED_HEALTH_WINDOW) {
-    if (f === 'live')                                  feedsHealth.live++;
-    else if (f === 'cached' || f === 'stale')          feedsHealth.cached++;
-    else                                               feedsHealth.errored++;
-  }
+function recordFreshness(source, fresh) {
+  feedsHealth = updateSourceFreshness(FEED_HEALTH_BY_SOURCE, source, fresh);
   updateFeedsStat();
+}
+
+function combineFreshness(values) {
+  const rank = { live: 0, cached: 1, stale: 2, error: 3 };
+  return values.reduce((worst, value) =>
+    (rank[value] ?? 3) > (rank[worst] ?? 3) ? value : worst, 'live');
 }
 
 // ============================================================
@@ -170,6 +166,9 @@ function recordFreshness(fresh) {
 // ============================================================
 
 let MAP = null;
+let OPEN_METEO_ENABLED = false;
+let YAHOO_FINANCE_ENABLED = false;
+let PROVIDER_CATALOG_LOADED = false;
 let LAYERS = { quakes: null, conflict: null, weather: null, iss: null, cyclones: null, eonet: null, flights: null, firms: null };
 let ISS_MARKER = null;
 
@@ -186,7 +185,6 @@ const THEATERS = {
   mex:    { label: 'US-Mex Border',    view: [27, -101, 5],  kw: /mexic|border|cartel|sinaloa|jalisco|cbp|migrant|tijuana|el paso|rio grande/i },
   kor:    { label: 'Korean Peninsula', view: [38.5, 127, 6],  kw: /korea|pyongyang|seoul|dprk|kim jong/i },
 };
-let CURRENT_THEATER = 'global';
 
 // EONET category → color + short label. Used both on the map and for the legend.
 const EONET_CAT_STYLE = {
@@ -216,16 +214,7 @@ function initMap() {
     minZoom: 2, maxZoom: 8, preferCanvas: true,
   }).setView([25, 20], 3);
 
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png', {
-    subdomains: 'abcd', maxZoom: 8,
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
-  }).addTo(MAP);
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_only_labels/{z}/{x}/{y}{r}.png', {
-    subdomains: 'abcd', maxZoom: 8, opacity: 0.45, attribution: '',
-  }).addTo(MAP);
-
-  // Tactical graticule: lat/lon lines every 30 degrees in a desaturated cyan.
-  drawGraticule();
+  addBundledWorldBase(MAP, { statusNode: $('map-status') });
 
   // Layer paint order matters: layers added LATER render on top. The big red
   // conflict markers were drawing over everything else --- moving them to the
@@ -239,13 +228,13 @@ function initMap() {
   LAYERS.quakes   = L.layerGroup().addTo(MAP);
   LAYERS.iss      = L.layerGroup().addTo(MAP);
   attachMapCoordReadout();
-  attachMapClickWeather();
+  if (OPEN_METEO_ENABLED) attachMapClickWeather();
 
   // Right-click on map → add a labeled pin (intel annotation).
   MAP.on('contextmenu', (e) => {
     const lat = e.latlng.lat;
     const lon = ((e.latlng.lng + 540) % 360) - 180;
-    addAnnotation(lat, lon);
+    addAnnotation(lat, lon).catch(() => alert('The pin could not be saved.'));
   });
   ensureAnnotationLayer();
   redrawAnnotations();
@@ -332,18 +321,18 @@ setInterval(updateCapitalClocks, 30000);
 function switchTheater(id) {
   const t = THEATERS[id];
   if (!t) return;
-  CURRENT_THEATER = id;
+  APP_STORE.state.ui.theater = id;
   document.querySelectorAll('#theaterbar .t-btn').forEach(b =>
     b.classList.toggle('active', b.dataset.theater === id));
   if (MAP) MAP.setView([t.view[0], t.view[1]], t.view[2]);
   // Re-render conflict + sitreps + GDACS with the theater filter applied.
-  refreshConflict();
-  refreshRelief();
-  refreshCyclones();  // includes GDACS section
+  runRefresh(refreshConflict);
+  runRefresh(refreshRelief);
+  runRefresh(refreshCyclones);  // includes GDACS section
 }
 
 function inTheater(text) {
-  const t = THEATERS[CURRENT_THEATER];
+  const t = THEATERS[APP_STORE.state.ui.theater];
   if (!t || !t.kw) return true;  // global → no filter
   return t.kw.test(text || '');
 }
@@ -368,6 +357,13 @@ function fireBreaking(text) {
 // BRIEFING export — print-ready HTML
 // ============================================================
 function generateBriefing() {
+  if (APP_STORE.state.ui.displayMode !== 'standard') {
+    if (!OVERVIEW_CONTROLLER?.printSelectedBriefing()) {
+      const live = $('overview-live');
+      if (live) live.textContent = 'Select an incident before opening a printable briefing.';
+    }
+    return;
+  }
   const now = new Date();
   const ts = now.toISOString().replace('T', ' ').slice(0, 16) + ' UTC';
   // Pull current displayed data from the cached state.
@@ -408,11 +404,11 @@ function generateBriefing() {
   @media print { .print-bar { display: none; } }
 </style></head><body>
 <div class="print-bar">
-  <button onclick="window.print()">Print / save as PDF</button>
-  <button onclick="window.close()">Close</button>
+  <button id="briefing-print">Print / save as PDF</button>
+  <button id="briefing-close">Close</button>
 </div>
 <h1>Foglight Situation Report</h1>
-<div class="meta">As of ${ts} &middot; theater: ${escapeHtml((THEATERS[CURRENT_THEATER]||{}).label || '?')}</div>
+<div class="meta">As of ${ts} &middot; theater: ${escapeHtml((THEATERS[APP_STORE.state.ui.theater]||{}).label || '?')}</div>
 
 <div class="summary">
   <b>Top-line:</b> ${STATUS.hotspots} active conflict hotspots &middot;
@@ -441,7 +437,7 @@ function generateBriefing() {
 <ul>${gdacsHtml || '<li class="empty">No red/orange alerts.</li>'}</ul>
 
 <div class="meta" style="margin-top: 36px; border-top: 1px solid #ccc; padding-top: 8px;">
-  Generated by Foglight &middot; open-source civilian sitrep dashboard &middot; data from GDELT, USGS, NWS, NOAA NHC, ReliefWeb, GDACS, EONET.
+  Generated by Foglight &middot; open-source civilian sitrep dashboard &middot; data from public RSS, USGS, NWS, NOAA NHC, ReliefWeb, GDACS, EONET.
 </div>
 </body></html>`;
   const w = window.open('', '_blank', 'width=820,height=900');
@@ -453,6 +449,8 @@ function generateBriefing() {
   }
   w.document.write(html);
   w.document.close();
+  w.document.getElementById('briefing-print')?.addEventListener('click', () => w.print());
+  w.document.getElementById('briefing-close')?.addEventListener('click', () => w.close());
 }
 
 // Caches the renderers feed for the briefing export.
@@ -462,17 +460,20 @@ let FG_LAST_RELIEF   = [];
 let FG_LAST_WX       = [];
 
 // ============================================================
-// WATCHLIST — keyword alerts across streams
+// APP_STORE.state.user.watchlist — keyword alerts across streams
 // ============================================================
-let WATCHLIST = [];
 let WATCHLIST_SEEN = new Set();   // titles we've already alerted on
 function matchesWatchlist(text) {
-  if (!WATCHLIST.length || !text) return false;
+  if (!APP_STORE.state.user.watchlist.length || !text) return false;
   const lower = text.toLowerCase();
-  return WATCHLIST.some(kw => kw && lower.includes(kw.toLowerCase()));
+  return APP_STORE.state.user.watchlist.some(kw => kw && lower.includes(kw.toLowerCase()));
 }
 function checkAndAlert(items, srcLabel) {
   // For new items matching watchlist, fire breaking banner (deduped).
+  const notificationConfig = APP_STORE.state.user.notifications || {};
+  if (!notificationConfig.enabled || isQuietHours(
+    Date.now(), notificationConfig.quiet_start, notificationConfig.quiet_end,
+  )) return;
   for (const it of items) {
     const text = (it.title || '') + ' ' + (it.summary || '');
     if (!matchesWatchlist(text)) continue;
@@ -480,28 +481,50 @@ function checkAndAlert(items, srcLabel) {
     if (WATCHLIST_SEEN.has(key)) continue;
     WATCHLIST_SEEN.add(key);
     if (WATCHLIST_SEEN.size > 1) {  // skip first-launch flood
-      fireBreaking('WATCHLIST HIT — ' + srcLabel + ' — ' + (it.title || '').slice(0, 80));
+      fireBreaking('APP_STORE.state.user.watchlist HIT — ' + srcLabel + ' — ' + (it.title || '').slice(0, 80));
     }
   }
 }
 
 async function saveWatchlist() {
+  const button = $('save-watchlist');
+  if (button.disabled) return;
+  button.disabled = true;
   const text = $('watchlist-text').value;
   const kws = text.split('\n').map(s => s.trim()).filter(Boolean);
-  WATCHLIST = kws;
+  const previousWatchlist = APP_STORE.state.user.watchlist.slice();
+  const previousRegions = APP_STORE.state.user.watchRegions.slice();
+  const retainedRegions = (APP_STORE.state.user.watchRegions || [])
+    .filter(region => region?.id !== 'legacy:keywords');
+  const watchRegions = normalizeWatchRegions(retainedRegions, kws);
+  APP_STORE.update('user', { watchlist: kws, watchRegions });
   WATCHLIST_SEEN.clear();  // reset so re-saves can re-alert
-  await fget('/api/settings', {
-    method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ watchlist: kws }),
-  });
-  // Re-render streams to apply highlight.
-  refreshConflict(); refreshRelief();
+  try {
+    const response = await fget('/api/settings', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ watchlist: kws, watch_regions: watchRegions }),
+    });
+    if (!response.ok) throw new Error(`watchlist write failed (${response.status})`);
+    WATCH_CENTER_CONTROLLER?.refreshSettings();
+    button.textContent = 'Saved';
+    window.setTimeout(() => { button.textContent = 'Save watchlist'; }, 1200);
+    // Re-render streams to apply highlight.
+    refreshConflict(); refreshRelief();
+  } catch {
+    APP_STORE.update('user', {
+      watchlist: previousWatchlist, watchRegions: previousRegions,
+    });
+    $('watchlist-text').value = previousWatchlist.join('\n');
+    WATCH_CENTER_CONTROLLER?.refreshSettings();
+    button.textContent = 'Save failed';
+  } finally {
+    button.disabled = false;
+  }
 }
 
 // ============================================================
-// MAP ANNOTATIONS — user-pinned points
+// MAP APP_STORE.state.user.annotations — user-pinned points
 // ============================================================
-let ANNOTATIONS = [];          // {lat, lon, label}
 let ANNOTATION_LAYER = null;
 
 function ensureAnnotationLayer() {
@@ -514,20 +537,23 @@ function redrawAnnotations() {
   ensureAnnotationLayer();
   if (!ANNOTATION_LAYER) return;
   ANNOTATION_LAYER.clearLayers();
-  for (let i = 0; i < ANNOTATIONS.length; i++) {
-    const a = ANNOTATIONS[i];
+  for (let i = 0; i < APP_STORE.state.user.annotations.length; i++) {
+    const a = APP_STORE.state.user.annotations[i];
     const icon = L.divIcon({
       className: '',
       iconSize: [16, 16],
       html: `<div class="anno-pin"></div>`,
     });
-    const m = L.marker([a.lat, a.lon], { icon });
+    const m = L.marker([a.lat, a.lon], {
+      icon,
+      title: `Map annotation: ${a.label || 'Saved pin'}`,
+    });
     m.bindTooltip(a.label || 'Pinned', { permanent: false, direction: 'top' });
     m.bindPopup(
       `<div style="font:11px 'JetBrains Mono',monospace">` +
       `<b style="color:#f7931a;text-transform:uppercase;letter-spacing:0.06em">${escapeHtml(a.label || 'Pinned')}</b><br>` +
       `<span style="color:#7e8aa3">${a.lat.toFixed(2)}°, ${a.lon.toFixed(2)}°</span><br><br>` +
-      `<button onclick="removeAnnotation(${i})" style="background:var(--hot);color:#fff;border:0;padding:4px 8px;cursor:pointer;font:10px monospace;text-transform:uppercase">Remove pin</button>` +
+      `<button class="annotation-remove" data-annotation-index="${i}" style="background:var(--hot);color:#fff;border:0;padding:4px 8px;cursor:pointer;font:10px monospace;text-transform:uppercase">Remove pin</button>` +
       `</div>`
     );
     m.on('click', e => L.DomEvent.stopPropagation(e));
@@ -539,28 +565,50 @@ function redrawAnnotations() {
 function renderAnnotationList() {
   const wrap = $('annotation-list');
   if (!wrap) return;
-  if (!ANNOTATIONS.length) {
+  if (!APP_STORE.state.user.annotations.length) {
     wrap.innerHTML = '<div style="color:var(--text-dimmer);font-size:11px;font-style:italic;padding:6px 0">No pins yet. Right-click anywhere on the world map to add one.</div>';
     return;
   }
-  wrap.innerHTML = ANNOTATIONS.map((a, i) =>
+  wrap.innerHTML = APP_STORE.state.user.annotations.map((a, i) =>
     `<div class="anno"><span class="dot"></span>` +
     `<span class="lbl">${escapeHtml(a.label || 'Pinned')}</span>` +
     `<span class="coord">${a.lat.toFixed(2)}°, ${a.lon.toFixed(2)}°</span>` +
-    `<button onclick="removeAnnotation(${i})">remove</button></div>`
+    `<button class="annotation-remove" data-annotation-index="${i}">remove</button></div>`
   ).join('');
 }
 
 async function addAnnotation(lat, lon) {
+  if (APP_STORE.state.user.annotations.length >= 100) {
+    alert('Foglight stores up to 100 pins. Remove one in Settings first.');
+    return;
+  }
   const label = prompt('Pin label (intel note):', '');
   if (label == null) return;  // cancelled
-  ANNOTATIONS.push({ lat, lon, label: label.trim() || 'Pinned' });
-  await persistAnnotations();
+  APP_STORE.state.user.annotations.push({
+    lat, lon, label: (label.trim() || 'Pinned').slice(0, 80),
+  });
+  try {
+    await persistAnnotations();
+  } catch (error) {
+    APP_STORE.state.user.annotations.pop();
+    throw error;
+  }
+  redrawAnnotations();
+}
+
+async function addAnnotationFromForm(annotation) {
+  APP_STORE.state.user.annotations.push(annotation);
+  try {
+    await persistAnnotations();
+  } catch (error) {
+    APP_STORE.state.user.annotations.pop();
+    throw error;
+  }
   redrawAnnotations();
 }
 
 async function removeAnnotation(idx) {
-  ANNOTATIONS.splice(idx, 1);
+  APP_STORE.state.user.annotations.splice(idx, 1);
   await persistAnnotations();
   redrawAnnotations();
   MAP && MAP.closePopup();
@@ -568,7 +616,7 @@ async function removeAnnotation(idx) {
 
 async function clearAllAnnotations() {
   if (!confirm('Remove all map pins?')) return;
-  ANNOTATIONS = [];
+  APP_STORE.state.user.annotations = [];
   await persistAnnotations();
   redrawAnnotations();
 }
@@ -576,13 +624,19 @@ async function clearAllAnnotations() {
 async function persistAnnotations() {
   await fget('/api/settings', {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ annotations: ANNOTATIONS }),
+    body: JSON.stringify({ annotations: APP_STORE.state.user.annotations }),
   });
 }
 
 window.removeAnnotation    = removeAnnotation;
 window.saveWatchlist       = saveWatchlist;
 window.clearAllAnnotations = clearAllAnnotations;
+document.addEventListener('click', (event) => {
+  const button = event.target.closest && event.target.closest('.annotation-remove');
+  if (!button) return;
+  const index = Number(button.dataset.annotationIndex);
+  if (Number.isInteger(index)) removeAnnotation(index);
+});
 
 // ============================================================
 // TTS — voice briefing
@@ -642,18 +696,18 @@ document.addEventListener('keydown', (e) => {
 // ============================================================
 // DEFENSE WIRE (military / strategic-analysis RSS)
 //   Items are merged INTO the Conflict Wire stream on its next refresh,
-//   so users see DOD / NATO / CISA / Stripes / War on the Rocks alongside
+//   so users see official DOD, Defense News, and War on the Rocks alongside
 //   UN / DW / France 24 — one unified intel firehose.
 // ============================================================
 let LAST_DEFENSE = [];
 async function refreshDefense() {
   const { body, fresh } = await fgetJSON('/api/defense-wire');
-  recordFreshness(fresh);
+  recordFreshness('defense', fresh);
   if (!body || !body.articles) return;
   LAST_DEFENSE = body.articles;
   checkAndAlert(LAST_DEFENSE, 'DEFENSE');
   // Trigger a conflict-wire re-render so the merged feed shows.
-  refreshConflict();
+  runRefresh(refreshConflict);
 }
 
 // ============================================================
@@ -662,20 +716,8 @@ async function refreshDefense() {
 let LAST_COMMODITIES = null;
 async function refreshCommodities() {
   const { body, fresh } = await fgetJSON('/api/commodities');
-  recordFreshness(fresh);
+  recordFreshness('commodities', fresh);
   if (body && body.items) LAST_COMMODITIES = body.items;
-}
-
-function drawGraticule() {
-  const style = { color: '#1c2336', weight: 0.6, opacity: 0.85, interactive: false };
-  for (let lat = -60; lat <= 60; lat += 30) {
-    L.polyline([[lat, -180], [lat, 180]], style).addTo(MAP);
-  }
-  for (let lon = -180; lon <= 180; lon += 30) {
-    L.polyline([[-85, lon], [85, lon]], style).addTo(MAP);
-  }
-  L.polyline([[0, -180], [0, 180]],
-    { color: '#26324a', weight: 0.9, opacity: 1, interactive: false }).addTo(MAP);
 }
 
 // Click on an empty patch of the world map → fetch Open-Meteo current
@@ -784,10 +826,14 @@ let LAST_USGS = null;  // shared by Earthquakes panel + Major Hazards "significa
 async function refreshQuakes() {
   const { body, fresh } = await fgetJSON('/api/usgs?window=day');
   setBadge('bd-quakes', fresh);
-  recordFreshness(fresh);
+  recordFreshness('earthquakes', fresh);
   if (!body || !body.features) {
     // Don't blank the panel on transient errors --- keep whatever was there.
-    if (fresh === 'error' && !$('body-quakes').firstChild) {
+    // The initial loading placeholder is itself a child, so checking firstChild
+    // left first-run failures stuck on "Loading USGS…" forever. Preserve a
+    // rendered data set, but replace the placeholder when no valid response has
+    // ever been painted.
+    if (fresh === 'error' && !LAST_USGS) {
       $('body-quakes').innerHTML = '<div class="empty"><b>USGS feed unreachable.</b> Retrying shortly.</div>';
     }
     return;
@@ -817,8 +863,9 @@ async function refreshQuakes() {
     row.appendChild(lbl);
     const m = el('div'); m.appendChild(el('span', 'mag ' + magCls, mag ? mag.toFixed(1) : '?'));
     row.appendChild(m);
-    if (p.url) {
-      row.addEventListener('click', () => window.open(p.url, '_blank', 'noopener'));
+    const quakeUrl = safeHttpUrl(p.url);
+    if (quakeUrl) {
+      row.addEventListener('click', () => window.open(quakeUrl, '_blank', 'noopener'));
     }
     out.appendChild(row);
   }
@@ -831,13 +878,14 @@ async function refreshQuakes() {
     const [lon, lat] = f.geometry.coordinates;
     const mag = f.properties.mag || 0;
     if (mag < 2) continue;
+    const popupUrl = safeHttpUrl(f.properties.url);
     L.circleMarker([lat, lon], {
       radius: Math.max(3, mag * 2), color: '#ff8a3d',
       fillColor: '#ff8a3d', fillOpacity: 0.55, weight: 1,
       bubblingMouseEvents: false,
-    }).bindPopup(`<b>M ${mag.toFixed(1)}</b><br>${f.properties.place}<br>` +
+    }).bindPopup(`<b>M ${mag.toFixed(1)}</b><br>${escapeHtml(f.properties.place || 'Unknown')}<br>` +
                  `<small>${new Date(f.properties.time).toISOString().replace('T',' ').slice(0,16)} UTC</small>` +
-                 (f.properties.url ? `<br><a href="${f.properties.url}" target="_blank">USGS &rarr;</a>` : ''))
+                 (popupUrl ? `<br><a href="${escapeHtml(popupUrl)}" target="_blank" rel="noopener noreferrer">USGS &rarr;</a>` : ''))
       .addTo(LAYERS.quakes);
     newIds.add(f.id);
   }
@@ -854,7 +902,7 @@ async function refreshQuakes() {
 }
 
 // ============================================================
-// GDELT geo + conflict watch
+// Conflict watch
 // ============================================================
 
 // ============================================================
@@ -867,13 +915,14 @@ async function refreshFlights() {
   const z = MAP.getZoom();
   const dist = z >= 6 ? 100 : z >= 5 ? 180 : z >= 4 ? 250 : 250;
   const { body, fresh } = await fgetJSON(`/api/flights?lat=${c.lat.toFixed(2)}&lon=${c.lng.toFixed(2)}&dist=${dist}`);
-  recordFreshness(fresh);
+  recordFreshness('aircraft', fresh);
   if (!body) return;
   const ac = body.ac || body.aircraft || [];
   LAYERS.flights.clearLayers();
   for (const a of ac.slice(0, 250)) {
     if (a.lat == null || a.lon == null) continue;
-    const heading = a.track != null ? a.track : (a.true_heading != null ? a.true_heading : 0);
+    const rawHeading = a.track != null ? a.track : (a.true_heading != null ? a.true_heading : 0);
+    const heading = Number.isFinite(Number(rawHeading)) ? Number(rawHeading) : 0;
     const callsign = (a.flight || a.r || '').trim();
     const alt = a.alt_baro != null ? a.alt_baro : (a.alt_geom != null ? a.alt_geom : '?');
     const spd = a.gs != null ? Math.round(a.gs) : '?';
@@ -902,7 +951,7 @@ async function refreshFirms() {
   LAST_FIRMS_FETCH = Date.now();
   const { body, fresh } = await fgetJSON('/api/firms');
   if (!body || !body.items) { LAYERS.firms.clearLayers(); return; }
-  recordFreshness(fresh);
+  recordFreshness('firms', fresh);
   LAYERS.firms.clearLayers();
   for (const f of body.items) {
     L.circleMarker([f.lat, f.lon], {
@@ -930,7 +979,7 @@ let GDACS_KNOWN_REDS = new Set();
 
 async function refreshGdacs() {
   const { body, fresh } = await fgetJSON('/api/gdacs');
-  recordFreshness(fresh);
+  recordFreshness('gdacs', fresh);
   if (!body || !body.items) return;
   GDACS_CACHE = body.items;
   // Status bar count: orange + red alerts only (skip green = informational).
@@ -950,16 +999,18 @@ async function refreshGdacs() {
     }
   }
   // Re-render Major Hazards (which integrates GDACS).
-  refreshCyclones();
+  runRefresh(refreshCyclones);
 }
 
 function gdacsRowHtml(d) {
-  const cls = (d.alert || 'green').toLowerCase();
-  const t = GDACS_TYPE[d.etype] || d.etype || d.title.slice(0, 6);
+  const rawClass = (d.alert || 'green').toLowerCase();
+  const cls = ['green', 'orange', 'red'].includes(rawClass) ? rawClass : 'green';
+  const t = GDACS_TYPE[d.etype] || d.etype || String(d.title || 'Event').slice(0, 6);
   const country = (d.country || '').slice(0, 18);
   const title = (d.title || '').replace(/^[A-Za-z ]+alert:\s*/i, '').slice(0, 80);
-  const href = d.link ? ` href="${escapeHtml(d.link)}" target="_blank" rel="noopener noreferrer"` : '';
-  const tag = d.link ? 'a' : 'div';
+  const url = safeHttpUrl(d.link);
+  const href = url ? ` href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer"` : '';
+  const tag = url ? 'a' : 'div';
   return `<${tag} class="gdacs-row ${cls}"${href}>
     <div class="sev"></div>
     <div class="meta">${escapeHtml(t)}</div>
@@ -973,7 +1024,7 @@ function gdacsRowHtml(d) {
 
 async function refreshSpaceWeather() {
   const { body, fresh } = await fgetJSON('/api/space-weather');
-  recordFreshness(fresh);
+  recordFreshness('space-weather', fresh);
   // NOAA SWPC returns either array-of-arrays (older format with header row)
   // or array-of-objects {time_tag, Kp, ...}. Support both.
   let kp = null;
@@ -1003,12 +1054,13 @@ async function refreshSpaceWeather() {
 
 async function refreshEonet() {
   const { body, fresh } = await fgetJSON('/api/eonet');
-  recordFreshness(fresh);
+  recordFreshness('eonet', fresh);
   if (!body || !body.events) return;
   LAYERS.eonet.clearLayers();
   for (const ev of body.events) {
     const s = eonetStyle(ev.cats);
     const radius = 4 + (ev.cats && ev.cats.includes('wildfires') ? 1 : 0);
+    const eventUrl = safeHttpUrl(ev.link);
     L.circleMarker([ev.lat, ev.lon], {
       radius, color: s.color, fillColor: s.color,
       fillOpacity: 0.55, weight: 1,
@@ -1018,7 +1070,7 @@ async function refreshEonet() {
         <b style="color:${s.color};text-transform:uppercase;letter-spacing:0.06em;font-size:11px">${escapeHtml(s.label)}</b><br>
         <span style="font-size:11.5px">${escapeHtml(ev.title || '')}</span><br>
         <small style="color:#7e8aa3">${ev.date ? escapeHtml(ev.date.slice(0,16).replace('T',' ') + ' UTC') : ''}</small>
-        ${ev.link ? `<br><a href="${escapeHtml(ev.link)}" target="_blank" rel="noopener noreferrer" style="font-size:11px">Source →</a>` : ''}
+        ${eventUrl ? `<br><a href="${escapeHtml(eventUrl)}" target="_blank" rel="noopener noreferrer" style="font-size:11px">Source →</a>` : ''}
       </div>
     `).addTo(LAYERS.eonet);
   }
@@ -1030,7 +1082,7 @@ async function refreshEonet() {
 
 async function refreshConflictHotspots() {
   const { body, fresh } = await fgetJSON('/api/conflict-hotspots');
-  recordFreshness(fresh);
+  recordFreshness('conflict-hotspots', fresh);
   if (!body || !body.features) return;
   setStatus('hotspots', body.features.length, body.features.length > 10 ? 'hot' : body.features.length > 3 ? 'warn' : null);
   FG_LAST_HOTSPOTS = body.features.map(f => f.properties);
@@ -1060,8 +1112,9 @@ async function refreshConflictHotspots() {
     });
     const recent = (p.recent || []).map(r => {
       const t = r.ts ? new Date(r.ts * 1000).toISOString().slice(11, 16) + 'Z' : '--:--';
-      const tag = r.link ? 'a' : 'div';
-      const href = r.link ? ` href="${escapeHtml(r.link)}" target="_blank" rel="noopener noreferrer"` : '';
+      const url = safeHttpUrl(r.link);
+      const tag = url ? 'a' : 'div';
+      const href = url ? ` href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer"` : '';
       return `<${tag} class="cm-row"${href}>
                 <div class="cm-meta"><span class="cm-time">${t}</span><span class="cm-src">${escapeHtml(r.src)}</span></div>
                 <div class="cm-title">${escapeHtml(r.title)}</div>
@@ -1083,9 +1136,9 @@ async function refreshConflictHotspots() {
 }
 
 async function refreshConflict() {
-  const { body, fresh } = await fgetJSON('/api/gdelt-conflict');
+  const { body, fresh } = await fgetJSON('/api/conflict');
   setBadge('bd-conflict', fresh);
-  recordFreshness(fresh);
+  recordFreshness('conflict', fresh);
   let arts = (body && body.articles) || [];
   // Merge the Defense Wire articles so the panel is a single unified intel
   // stream covering both open-source conflict news and military-defense
@@ -1095,7 +1148,7 @@ async function refreshConflict() {
     arts.sort((a, b) => (b.ts || 0) - (a.ts || 0));
   }
   // Theater filter: when a theater is active, hide items whose title doesn't match.
-  if (CURRENT_THEATER !== 'global') {
+  if (APP_STORE.state.ui.theater !== 'global') {
     arts = arts.filter(a => inTheater((a.title || '') + ' ' + (a.summary || '')));
   }
   FG_LAST_CONFLICT = arts;
@@ -1113,8 +1166,9 @@ async function refreshConflict() {
     const src = (a.src || '').slice(0, 10);
     const title = (a.title || '').slice(0, 130);
     const isWatch = matchesWatchlist(title);
-    const tag = a.link ? 'a' : 'div';
-    const href = a.link ? ` href="${escapeHtml(a.link)}" target="_blank" rel="noopener noreferrer"` : '';
+    const url = safeHttpUrl(a.link);
+    const tag = url ? 'a' : 'div';
+    const href = url ? ` href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer"` : '';
     html += `<${tag} class="ln cnf${isWatch ? ' watch' : ''}"${href}><span class="t">${t}</span><span class="who">${escapeHtml(src)}</span><span class="ttl">${escapeHtml(title)}</span></${tag}>`;
   }
   fillStream($('body-conflict'), html);
@@ -1135,7 +1189,7 @@ const SEVERITY_COLOR = {
 async function refreshWeather() {
   const { body, fresh } = await fgetJSON('/api/nws');
   setBadge('bd-weather', fresh);
-  recordFreshness(fresh);
+  recordFreshness('weather', fresh);
   LAYERS.weather.clearLayers();
   const out = $('body-weather');
   out.innerHTML = '';
@@ -1196,12 +1250,22 @@ async function refreshCyclones() {
   // The panel is now "Major Hazards" --- it aggregates active tropical
   // cyclones AND significant earthquakes (M≥5) AND active volcano notices.
   // This way it always has content year-round.
-  const { body, fresh } = await fgetJSON('/api/cyclones');
-  setBadge('bd-cyclones', fresh);
-  recordFreshness(fresh);
+  const [cycloneResult, volcanoResult, tsunamiResult] = await Promise.all([
+    fgetJSON('/api/cyclones'),
+    fgetJSON('/api/volcanoes-real'),
+    fgetJSON('/api/tsunami'),
+  ]);
+  const { body, fresh } = cycloneResult;
+  const hazardFresh = combineFreshness([
+    fresh, volcanoResult.fresh, tsunamiResult.fresh,
+  ]);
+  setBadge('bd-cyclones', hazardFresh);
+  recordFreshness('major-hazards', hazardFresh);
   LAYERS.cyclones.clearLayers();
   const out = $('body-cyclones');
   const storms = (body && body.activeStorms) || [];
+  const volcanoes = (volcanoResult.body && volcanoResult.body.items) || [];
+  const tsunamis = (tsunamiResult.body && tsunamiResult.body.items) || [];
   setStatus('cyclones', storms.length, storms.length > 3 ? 'hot' : storms.length > 0 ? 'warn' : 'good');
 
   // Reuse the Earthquakes panel's already-fetched USGS data (LAST_USGS) so we
@@ -1253,9 +1317,49 @@ async function refreshCyclones() {
           fillColor: major ? '#ff5a4d' : '#5fb8ff',
           fillOpacity: 0.6, weight: 1.5,
           bubblingMouseEvents: false,
-        }).bindPopup(`<b>${s.name || s.id}</b><br>${s.classification || ''}<br><small>winds ${intensity} kt</small>`)
+        }).bindPopup(`<b>${escapeHtml(s.name || s.id || 'Storm')}</b><br>${escapeHtml(s.classification || '')}<br><small>winds ${intensity} kt</small>`)
           .addTo(LAYERS.cyclones);
       }
+    }
+  }
+
+  if (volcanoes.length) {
+    any = true;
+    out.appendChild(el('div', 'hazard-section', 'VOLCANO ACTIVITY'));
+    for (const volcano of volcanoes.slice(0, 6)) {
+      const row = el('div', 'row clickable');
+      row.appendChild(el('div', 'when', 'VOL'));
+      const lbl = el('div', 'label');
+      lbl.appendChild(el('span', 'title', volcano.name || 'Volcano notice'));
+      lbl.appendChild(el('span', 'sub', (volcano.summary || '').slice(0, 100)));
+      row.appendChild(lbl);
+      const url = safeHttpUrl(volcano.link);
+      if (url) row.addEventListener('click', () => window.open(url, '_blank', 'noopener'));
+      out.appendChild(row);
+      if (Number.isFinite(Number(volcano.lat)) && Number.isFinite(Number(volcano.lon))) {
+        L.circleMarker([Number(volcano.lat), Number(volcano.lon)], {
+          radius: 6, color: '#ff5a4d', fillColor: '#ff5a4d',
+          fillOpacity: 0.55, weight: 1.2, bubblingMouseEvents: false,
+        }).bindPopup(`<b>${escapeHtml(volcano.name || 'Volcano notice')}</b><br>` +
+                     `<small>${escapeHtml((volcano.summary || '').slice(0, 180))}</small>`)
+          .addTo(LAYERS.cyclones);
+      }
+    }
+  }
+
+  if (tsunamis.length) {
+    any = true;
+    out.appendChild(el('div', 'hazard-section', 'TSUNAMI NOTICES'));
+    for (const notice of tsunamis.slice(0, 6)) {
+      const row = el('div', 'row');
+      const when = notice.ts ? fmtTime(new Date(notice.ts * 1000)) : '--';
+      row.appendChild(el('div', 'when', when));
+      const lbl = el('div', 'label');
+      lbl.appendChild(el('span', 'title', notice.title || 'Tsunami notice'));
+      lbl.appendChild(el('span', 'sub', (notice.summary || '').slice(0, 100)));
+      row.appendChild(lbl);
+      row.appendChild(el('div', 'right', notice.source || 'TS'));
+      out.appendChild(row);
     }
   }
 
@@ -1277,7 +1381,8 @@ async function refreshCyclones() {
       const mag = p.mag || 0;
       const magCls = mag >= 6 ? 'm4' : mag >= 5 ? 'm3' : 'm2';
       row.appendChild((() => { const d = el('div'); d.appendChild(el('span', 'mag ' + magCls, mag.toFixed(1))); return d; })());
-      if (p.url) row.addEventListener('click', () => window.open(p.url, '_blank', 'noopener'));
+      const quakeUrl = safeHttpUrl(p.url);
+      if (quakeUrl) row.addEventListener('click', () => window.open(quakeUrl, '_blank', 'noopener'));
       out.appendChild(row);
     }
   }
@@ -1322,9 +1427,9 @@ async function refreshCyclones() {
 async function refreshRelief() {
   const { body, fresh } = await fgetJSON('/api/relief');
   setBadge('bd-relief', fresh);
-  recordFreshness(fresh);
+  recordFreshness('relief', fresh);
   let items = (body && body.articles) || [];
-  if (CURRENT_THEATER !== 'global') {
+  if (APP_STORE.state.ui.theater !== 'global') {
     items = items.filter(a => inTheater(a.title || ''));
   }
   FG_LAST_RELIEF = items;
@@ -1344,330 +1449,85 @@ async function refreshRelief() {
     const country = m ? m[1] : '';
     const rest = m ? m[2] : title;
     const isWatch = matchesWatchlist(title);
-    const tag = it.link ? 'a' : 'div';
-    const href = it.link ? ` href="${escapeHtml(it.link)}" target="_blank" rel="noopener noreferrer"` : '';
+    const url = safeHttpUrl(it.link);
+    const tag = url ? 'a' : 'div';
+    const href = url ? ` href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer"` : '';
     html += `<${tag} class="ln rlf${isWatch ? ' watch' : ''}"${href}><span class="t">${t}</span><span class="who">${escapeHtml((country || 'RW').slice(0,10))}</span><span class="ttl">${escapeHtml(rest)}</span></${tag}>`;
   }
   fillStream($('body-relief'), html);
   checkAndAlert(items, 'SITREPS');
 }
-
 // ============================================================
-// BITCOIN PULSE (mempool.space)
+// OPTIONAL COMMUNITY CONTROLLERS
 // ============================================================
-
-let LAST_BLOCK_HEIGHT = null;
-
-async function refreshBitcoin() {
-  if (!PANELS_VISIBLE.btc) return;  // skip work if hidden
-  const { body, fresh } = await fgetJSON('/api/mempool');
-  setBadge('bd-btc', fresh);
-  recordFreshness(fresh);
-  if (!body) return;
-
-  const fees   = body.fees      || {};
-  const mp     = body.mempool   || {};
-  const blocks = Array.isArray(body.blocks) ? body.blocks : [];
-  const adj    = body.difficulty || {};
-
-  // BTC price comes from the crypto endpoint cache; refreshCrypto stores
-  // the latest BTC tick in LAST_BTC_PRICE on its way through.
-  if (typeof LAST_BTC_PRICE === 'number' && LAST_BTC_PRICE > 0) {
-    $('btc-price').textContent = '$' + Math.round(LAST_BTC_PRICE).toLocaleString();
-  }
-
-  $('btc-mempool-count').textContent = (mp.count != null) ? mp.count.toLocaleString() : '--';
-  $('btc-mempool-vsize').textContent = mp.vsize ? Math.round(mp.vsize / 1e6) + ' MB' : '--';
-
-  $('btc-fast-fee').textContent = fees.fastestFee != null ? fees.fastestFee + ' sat/vB' : '--';
-  $('btc-econ-fee').textContent = fees.economyFee != null ? fees.economyFee + ' sat/vB' : '--';
-
-  if (blocks.length) {
-    const top = blocks[0];
-    $('btc-height').textContent = top.height ? top.height.toLocaleString() : '--';
-    if (top.timestamp) {
-      const a = Math.max(0, Math.floor(Date.now() / 1000) - top.timestamp);
-      $('btc-last-block').textContent = ago(a) + ' ago';
-    }
-    if (LAST_BLOCK_HEIGHT != null && top.height > LAST_BLOCK_HEIGHT) playCue('bitcoin_block');
-    LAST_BLOCK_HEIGHT = top.height || LAST_BLOCK_HEIGHT;
-  }
-  if (adj && adj.remainingBlocks != null) {
-    $('btc-adj').textContent = adj.remainingBlocks + ' blocks';
-    const dc = adj.difficultyChange;
-    const cd = $('btc-diff-change');
-    cd.textContent = (dc != null) ? (dc > 0 ? '+' : '') + dc.toFixed(2) + '%' : '--';
-    cd.style.color = dc > 0 ? 'var(--good)' : dc < 0 ? 'var(--hot)' : 'var(--text)';
-  }
-}
 
 let LAST_BTC_PRICE = null;
+const { refreshBitcoin, refreshWiki, refreshGitHub } = createCommunityControllers({
+  store: APP_STORE,
+  byId: $,
+  getJSON: fgetJSON,
+  setBadge,
+  recordFreshness,
+  fillStream,
+  elapsed: ago,
+  formatTime: fmtTime,
+  escapeHtml,
+  safeHttpUrl,
+  playCue,
+  getBitcoinPrice: () => LAST_BTC_PRICE,
+});
 
-// ============================================================
-// WIKIPEDIA edit stream
-// ============================================================
 
-let LAST_WIKI_TS = 0;
-const WIKI_BUF = [];
-
-async function refreshWiki() {
-  if (!PANELS_VISIBLE.wiki) return;
-  const { body, fresh } = await fgetJSON('/api/wiki/recent?limit=80');
-  setBadge('bd-wiki', fresh);
-  if (!body || !body.events) return;
-  const events = body.events;
-  const dot = $('stat-wiki').querySelector('.dot');
-  const txt = $('stat-wiki').querySelector('span:last-child');
-  if (events.length) {
-    dot.className = 'dot';
-    txt.textContent = events.length + ' edits';
-  }
-  // Maintain a sliding buffer of latest 30 events for the stream.
-  for (const e of events) {
-    if ((e.ts || 0) <= LAST_WIKI_TS) continue;
-    WIKI_BUF.unshift(e);
-  }
-  if (events.length) LAST_WIKI_TS = events[events.length - 1].ts || LAST_WIKI_TS;
-  while (WIKI_BUF.length > 30) WIKI_BUF.pop();
-
-  let html = '';
-  for (const e of WIKI_BUF) {
-    const t = fmtTime(new Date((e.ts || 0) * 1000));
-    const who = (e.user || '?').slice(0, 14);
-    const sz = (e.length && e.length.new != null && e.length.old != null)
-      ? (e.length.new - e.length.old) : 0;
-    const base = (e.serverurl || 'https://en.wikipedia.org').replace(/\/$/, '');
-    const url = `${base}/wiki/${encodeURIComponent((e.title || '').replace(/ /g, '_'))}`;
-    html += `<a class="ln wk" href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer"><span class="t">${t}</span><span class="who">${escapeHtml(who)}</span><span class="ttl">${escapeHtml(e.title || '?')}</span><span class="sz">${sz >= 0 ? '+' : ''}${sz}</span></a>`;
-  }
-  fillStream($('body-wiki'), html);
-}
-
-// ============================================================
-// GITHUB
-// ============================================================
-
-const GH_VERBS = {
-  PushEvent:        'pushed',
-  PullRequestEvent: 'PR',
-  IssuesEvent:      'issue',
-  CreateEvent:      'created',
-  ReleaseEvent:     'released',
-  ForkEvent:        'forked',
-  WatchEvent:       'starred',
-};
-
-async function refreshGitHub() {
-  if (!PANELS_VISIBLE.github) return;
-  const { body, fresh } = await fgetJSON('/api/github');
-  setBadge('bd-gh', fresh);
-  recordFreshness(fresh);
-  if (!Array.isArray(body)) return;
-  let html = '';
-  for (const ev of body.slice(0, 30)) {
-    const verb = GH_VERBS[ev.type] || ev.type;
-    const t = fmtTime(new Date(ev.created_at));
-    const who = (ev.actor && ev.actor.login) || '?';
-    const repo = (ev.repo && ev.repo.name) || '?';
-    const url = `https://github.com/${repo}`;
-    html += `<a class="ln gh" href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer"><span class="t">${t}</span><span class="who">${escapeHtml(who)}</span><span class="evt">${verb}</span><span class="ttl">${escapeHtml(repo)}</span></a>`;
-  }
-  fillStream($('body-gh'), html);
-}
 
 // ============================================================
 // ISS TRACKER
 // ============================================================
 
 async function refreshISS() {
-  if (!PANELS_VISIBLE.iss) {
+  if (!APP_STORE.state.ui.panels.iss) {
     if (ISS_MARKER) { LAYERS.iss.removeLayer(ISS_MARKER); ISS_MARKER = null; }
     return;
   }
-  const { body } = await fgetJSON('/api/iss');
+  const { body, fresh } = await fgetJSON('/api/iss');
+  recordFreshness('iss', fresh);
   if (!body || !body.iss_position) return;
   const lat = parseFloat(body.iss_position.latitude);
   const lon = parseFloat(body.iss_position.longitude);
   if (isNaN(lat) || isNaN(lon)) return;
   $('iss-readout').textContent = `ISS · ${lat.toFixed(2)}, ${lon.toFixed(2)}`;
   if (!ISS_MARKER) {
-    ISS_MARKER = L.marker([lat, lon], { icon: pulseIcon('iss', 14) });
+    ISS_MARKER = L.marker([lat, lon], {
+      icon: pulseIcon('iss', 14),
+      title: 'International Space Station current position',
+    });
     ISS_MARKER.on('click', e => L.DomEvent.stopPropagation(e));
     ISS_MARKER.addTo(LAYERS.iss);
   } else {
     ISS_MARKER.setLatLng([lat, lon]);
   }
 }
-
 // ============================================================
-// SEC EDGAR
-// ============================================================
-
-async function refreshSEC() {
-  if (!PANELS_VISIBLE.sec) return;
-  const r = await fget('/api/sec');
-  const fresh = r.headers.get('X-Foglight-Freshness') || 'unknown';
-  setBadge('bd-sec', fresh);
-  recordFreshness(fresh);
-  const text = await r.text();
-  const entries = text.split(/<entry>/i).slice(1, 41);
-  if (!entries.length) {
-    $('body-sec').innerHTML = '<div class="empty">No filings.</div>';
-    return;
-  }
-  let html = '';
-  for (const e of entries) {
-    const m = (re) => { const r = e.match(re); return r ? r[1].replace(/<[^>]*>/g, '').trim() : ''; };
-    const title = m(/<title[^>]*>([\s\S]*?)<\/title>/i);
-    const updated = m(/<updated[^>]*>([\s\S]*?)<\/updated>/i);
-    const cat = m(/term="([^"]+)"/i);
-    const linkM = e.match(/<link[^>]*href="([^"]+)"/i);
-    const link = linkM ? linkM[1] : '';
-    if (!title) continue;
-    const dt = updated ? new Date(updated) : null;
-    const t = dt ? fmtTime(dt) : '--';
-    const tag = link ? 'a' : 'div';
-    const href = link ? ` href="${escapeHtml(link)}" target="_blank" rel="noopener noreferrer"` : '';
-    html += `<${tag} class="ln sec"${href}><span class="t">${t}</span><span class="who">${escapeHtml(cat || 'FILE')}</span><span class="ttl">${escapeHtml(title.slice(0,110))}</span></${tag}>`;
-  }
-  fillStream($('body-sec'), html);
-}
-
-// ============================================================
-// HACKER NEWS + REDDIT
+// OPTIONAL TICKER CONTROLLERS
 // ============================================================
 
-async function refreshTalk() {
-  if (!PANELS_VISIBLE.talk) return;
-  const hn = await fgetJSON('/api/hn/top');
-  recordFreshness(hn.fresh);
-  let hnList = [];
-  if (Array.isArray(hn.body)) {
-    const ids = hn.body.slice(0, 8);
-    const items = await Promise.all(
-      ids.map(id => fgetJSON('/api/hn/item/' + id).then(x => x.body))
-    );
-    hnList = items.filter(x => x && x.title);
-  }
-  const reddit = await fgetJSON('/api/reddit');
-  let rd = [];
-  if (reddit.body && reddit.body.data && Array.isArray(reddit.body.data.children)) {
-    rd = reddit.body.data.children.slice(0, 8).map(c => c.data);
-  }
-  setBadge('bd-talk', hn.fresh === 'live' || reddit.fresh === 'live' ? 'live'
-                   : hn.fresh === 'cached' || reddit.fresh === 'cached' ? 'cached'
-                   : (hn.fresh || reddit.fresh));
+const { refreshSEC, refreshTalk, refreshCrypto, refreshForex, refreshNews } =
+  createTickerControllers({
+    store: APP_STORE,
+    byId: $,
+    request: fget,
+    getJSON: fgetJSON,
+    setBadge,
+    recordFreshness,
+    fillStream,
+    combineFreshness,
+    formatTime: fmtTime,
+    escapeHtml,
+    safeHttpUrl,
+    getCommodities: () => LAST_COMMODITIES,
+    setBitcoinPrice: value => { LAST_BTC_PRICE = value; },
+  });
 
-  let html = '';
-  for (const it of hnList) {
-    const url = it.url || `https://news.ycombinator.com/item?id=${it.id}`;
-    html += `<a class="ln tlk" href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer"><span class="t">HN</span><span class="who">+${it.score || 0}</span><span class="ttl">${escapeHtml((it.title || '').slice(0,110))}</span></a>`;
-  }
-  for (const it of rd) {
-    const url = `https://www.reddit.com${it.permalink || ''}`;
-    html += `<a class="ln tlk" href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer"><span class="t">r/</span><span class="who">${escapeHtml((it.subreddit||'').slice(0,10))}</span><span class="ttl">${escapeHtml((it.title || '').slice(0,110))}</span></a>`;
-  }
-  fillStream($('body-talk'), html);
-}
 
-// ============================================================
-// CRYPTO + FOREX + NEWS TICKERS (slow)
-// ============================================================
-
-async function refreshCrypto() {
-  const { body, fresh } = await fgetJSON('/api/crypto');
-  recordFreshness(fresh);
-  if (!Array.isArray(body)) return;
-  const top = body.slice(0, 30);
-  const btc = body.find(t => t && (t.symbol === 'BTC' || t.id === 'btc-bitcoin'));
-  if (btc && btc.quotes && btc.quotes.USD && btc.quotes.USD.price) {
-    LAST_BTC_PRICE = btc.quotes.USD.price;
-  }
-  // Commodities (oil, gas, gold, etc.) prepended to the ticker so they
-  // appear before the crypto block --- generals care about WTI more than DOGE.
-  let commodityHtml = '';
-  if (LAST_COMMODITIES) {
-    for (const [label, c] of Object.entries(LAST_COMMODITIES)) {
-      const cls = c.chg >= 0 ? 'up' : 'down';
-      const sign = c.chg >= 0 ? '+' : '';
-      commodityHtml +=
-        `<span class="ti-crypto"><span class="sym">${escapeHtml(label)}</span>` +
-        `<span>$${c.close.toFixed(2)}</span>` +
-        `<span class="chg ${cls}">${sign}${c.chg.toFixed(2)}%</span></span>`;
-    }
-  }
-  let cryptoHtml = top.map(t => {
-    const px = (t.quotes && t.quotes.USD && t.quotes.USD.price) || 0;
-    const ch = (t.quotes && t.quotes.USD && t.quotes.USD.percent_change_24h) || 0;
-    const cls = ch >= 0 ? 'up' : 'down';
-    const sign = ch >= 0 ? '+' : '';
-    const price = px >= 1000 ? '$' + Math.round(px).toLocaleString()
-                : px >= 1 ? '$' + px.toFixed(2)
-                : '$' + px.toFixed(4);
-    return `<span class="ti-crypto"><span class="sym">${t.symbol || t.id}</span><span>${price}</span><span class="chg ${cls}">${sign}${ch.toFixed(2)}%</span></span>`;
-  }).join('');
-
-  // Append forex pairs from the cached forex response if present.
-  if (LAST_FOREX && LAST_FOREX.rates) {
-    const want = ['EUR', 'GBP', 'JPY', 'CHF', 'CNY', 'AUD', 'CAD'];
-    cryptoHtml += want.map(c => {
-      const r = LAST_FOREX.rates[c];
-      if (r == null) return '';
-      const inv = (c === 'JPY' ? r : (1 / r));
-      return `<span class="ti-crypto"><span class="sym">USD/${c}</span><span>${inv.toFixed(c === 'JPY' ? 2 : 4)}</span></span>`;
-    }).join('');
-  }
-  // Commodities first, then crypto, then forex (already appended). Double
-  // the whole thing for seamless scroll loop.
-  const combined = commodityHtml + cryptoHtml;
-  $('ticker-crypto-track').innerHTML = combined + combined;
-}
-
-let LAST_FOREX = null;
-async function refreshForex() {
-  const { body, fresh } = await fgetJSON('/api/forex');
-  recordFreshness(fresh);
-  if (body && body.rates) LAST_FOREX = body;
-}
-
-async function refreshNews() {
-  let feeds;
-  try {
-    const s = await fgetJSON('/api/settings');
-    feeds = (s.body && s.body.rss_feeds) || [];
-  } catch { feeds = []; }
-
-  const headlines = [];
-  const results = await Promise.all(feeds.map(async url => {
-    try {
-      const r = await fget('/api/rss?url=' + encodeURIComponent(url));
-      const text = await r.text();
-      const src = (url.match(/\/\/([^/]+)\//) || [, ''])[1].replace(/^www\./, '').split('.')[0] || 'rss';
-      const items = [];
-      const re = /<item[^>]*>([\s\S]*?)<\/item>/gi;
-      let m, n = 0;
-      while ((m = re.exec(text)) && n < 8) {
-        const blk = m[1];
-        const t = (blk.match(/<title[^>]*>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/title>/i) || [, ''])[1].trim();
-        const d = (blk.match(/<pubDate[^>]*>([\s\S]*?)<\/pubDate>/i) || [, ''])[1].trim();
-        if (t) items.push({ src, t, d });
-        n++;
-      }
-      return items;
-    } catch { return []; }
-  }));
-  results.forEach(arr => headlines.push(...arr));
-  if (!headlines.length) return;
-  for (let i = headlines.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [headlines[i], headlines[j]] = [headlines[j], headlines[i]];
-  }
-  const html = headlines.slice(0, 40).map(it => {
-    const tsStr = it.d ? (() => { try { return fmtTime(new Date(it.d)); } catch { return ''; } })() : '';
-    return `<span class="ti-news"><span class="src">${escapeHtml(it.src)}</span><span class="sep"></span><span>${escapeHtml(it.t)}</span>${tsStr ? `<span class="ts">${tsStr}</span>` : ''}</span>`;
-  }).join('');
-  $('ticker-news-track').innerHTML = html + html;
-}
 
 // ============================================================
 // LIVE TV
@@ -1682,7 +1542,6 @@ const TV_CHANNELS = [
   { id: 'bloomberg',  label: 'Bloomberg TV',   ytChannel: 'UCIALMKvObZNtJ6AmdCLP7Lg' },
 ];
 
-let CURRENT_TV_CHANNEL = 'aljazeera';
 
 function ytEmbedUrl(channelId, muted = true) {
   const m = muted ? '&mute=1' : '&mute=0';
@@ -1705,7 +1564,7 @@ function renderTvTabs() {
   const wrap = $('tv-tabs');
   wrap.innerHTML = '';
   for (const c of TV_CHANNELS) {
-    const b = el('button', 'tv-tab' + (c.id === CURRENT_TV_CHANNEL ? ' active' : ''), c.label);
+    const b = el('button', 'tv-tab' + (c.id === APP_STORE.state.ui.tvChannel ? ' active' : ''), c.label);
     b.dataset.id = c.id;
     b.addEventListener('click', () => switchTv(c.id));
     wrap.appendChild(b);
@@ -1716,7 +1575,7 @@ let TV_STARTED = false;
 function switchTv(channelId) {
   const ch = TV_CHANNELS.find(c => c.id === channelId);
   if (!ch) return;
-  CURRENT_TV_CHANNEL = channelId;
+  APP_STORE.state.ui.tvChannel = channelId;
   // Default state: iframe loads muted-autoplay. After the user clicks the
   // overlay, we reload the iframe WITHOUT mute (since now we have a user
   // gesture and browsers will allow audio).
@@ -1734,7 +1593,7 @@ function switchTv(channelId) {
 
 function startTvWithSound() {
   TV_STARTED = true;
-  const ch = TV_CHANNELS.find(c => c.id === CURRENT_TV_CHANNEL) || TV_CHANNELS[0];
+  const ch = TV_CHANNELS.find(c => c.id === APP_STORE.state.ui.tvChannel) || TV_CHANNELS[0];
   $('tv-frame').src = ytEmbedUrl(ch.ytChannel, false);
   setTvOpenLink(ch.ytChannel);
   $('tv-overlay').classList.add('hide');
@@ -1757,17 +1616,16 @@ const PANEL_DEFS = [
   { id: 'talk',     label: 'Hacker News + Reddit',    node: 'panel-talk' },
 ];
 
-let PANELS_VISIBLE = {};
 
 function applyPanelVisibility() {
   for (const p of PANEL_DEFS) {
     if (!p.node) continue;
     const el = $(p.node);
-    if (el) el.classList.toggle('hidden', !PANELS_VISIBLE[p.id]);
+    if (el) el.classList.toggle('hidden', !APP_STORE.state.ui.panels[p.id]);
   }
-  $('iss-readout').style.display = PANELS_VISIBLE.iss ? '' : 'none';
+  $('iss-readout').style.display = APP_STORE.state.ui.panels.iss ? '' : 'none';
   // ISS toggle also drops the map marker.
-  if (LAYERS && LAYERS.iss && !PANELS_VISIBLE.iss && ISS_MARKER) {
+  if (LAYERS && LAYERS.iss && !APP_STORE.state.ui.panels.iss && ISS_MARKER) {
     LAYERS.iss.removeLayer(ISS_MARKER);
     ISS_MARKER = null;
   }
@@ -1778,7 +1636,7 @@ function applyPanelVisibility() {
 // optional panels (Bitcoin / Wikipedia / GitHub / SEC / HN+Reddit) are off.
 function renderOptionalCta() {
   const optionalIds = ['btc', 'wiki', 'github', 'sec', 'talk'];
-  const hidden = optionalIds.filter(id => !PANELS_VISIBLE[id]);
+  const hidden = optionalIds.filter(id => !APP_STORE.state.ui.panels[id]);
   const bottom = $('pane-bottom');
   const main = $('main');
   let cta = $('optional-cta');
@@ -1799,15 +1657,12 @@ function renderOptionalCta() {
   main.style.gridTemplateAreas = '';
   if (allHidden) {
     bottom.style.display = 'none';
-    // Place the CTA in #main as a sibling of pane-bottom.
+    // Keep the CTA in the bottom grid row so it cannot cover map attribution.
     if (!cta) {
       cta = document.createElement('div');
       cta.id = 'optional-cta';
       cta.addEventListener('click', () => { openSettings(); scrollSettingsTo('panels'); });
-      document.body.appendChild(cta);
-      cta.style.position = 'fixed';
-      cta.style.left = '0'; cta.style.right = '0'; cta.style.bottom = '0';
-      cta.style.zIndex = '30';
+      main.appendChild(cta);
     }
     cta.innerHTML = `<span class="pill">+ ${hidden.length} optional panels</span>
                      <span>Bitcoin · Wikipedia · GitHub · SEC · Hacker News</span>
@@ -1834,7 +1689,10 @@ function renderPanelToggles() {
     const lbl = el('div', 'lbl');
     lbl.appendChild(el('h3', '', p.label));
     row.appendChild(lbl);
-    const t = el('div', 'toggle' + (PANELS_VISIBLE[p.id] ? ' on' : ''));
+    const t = el('button', 'toggle' + (APP_STORE.state.ui.panels[p.id] ? ' on' : ''));
+    t.type = 'button';
+    t.setAttribute('aria-label', `Toggle ${p.label}`);
+    t.setAttribute('aria-pressed', String(!!APP_STORE.state.ui.panels[p.id]));
     t.addEventListener('click', () => togglePanel(p.id, t));
     row.appendChild(t);
     wrap.appendChild(row);
@@ -1842,24 +1700,25 @@ function renderPanelToggles() {
 }
 
 async function togglePanel(id, toggleEl) {
-  PANELS_VISIBLE[id] = !PANELS_VISIBLE[id];
-  toggleEl.classList.toggle('on', PANELS_VISIBLE[id]);
+  APP_STORE.state.ui.panels[id] = !APP_STORE.state.ui.panels[id];
+  toggleEl.classList.toggle('on', APP_STORE.state.ui.panels[id]);
+  toggleEl.setAttribute('aria-pressed', String(!!APP_STORE.state.ui.panels[id]));
   applyPanelVisibility();
   // Persist
   fget('/api/settings', {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ panels: { [id]: PANELS_VISIBLE[id] } }),
+    body: JSON.stringify({ panels: { [id]: APP_STORE.state.ui.panels[id] } }),
   }).catch(() => {});
   // Refresh the panel's data if we just enabled it.
-  if (PANELS_VISIBLE[id]) {
-    if (id === 'wiki')     refreshWiki();
-    if (id === 'github')   refreshGitHub();
-    if (id === 'sec')      refreshSEC();
-    if (id === 'talk')     refreshTalk();
-    if (id === 'cyclones') refreshCyclones();
-    if (id === 'relief')   refreshRelief();
-    if (id === 'iss')      refreshISS();
-    if (id === 'btc')      refreshBitcoin();
+  if (APP_STORE.state.ui.panels[id]) {
+    if (id === 'wiki')     runRefresh(refreshWiki);
+    if (id === 'github')   runRefresh(refreshGitHub);
+    if (id === 'sec')      runRefresh(refreshSEC);
+    if (id === 'talk')     runRefresh(refreshTalk);
+    if (id === 'cyclones') runRefresh(refreshCyclones);
+    if (id === 'relief')   runRefresh(refreshRelief);
+    if (id === 'iss')      runRefresh(refreshISS);
+    if (id === 'btc')      runRefresh(refreshBitcoin);
   }
 }
 
@@ -1872,9 +1731,9 @@ function renderTvChannelPicker() {
     lbl.appendChild(el('h3', '', c.label));
     lbl.appendChild(el('p', '', `YouTube channel ${c.ytChannel}`));
     row.appendChild(lbl);
-    const b = el('button', '', c.id === CURRENT_TV_CHANNEL ? 'Default' : 'Make default');
+    const b = el('button', '', c.id === APP_STORE.state.ui.tvChannel ? 'Default' : 'Make default');
     b.addEventListener('click', () => { switchTv(c.id); renderTvChannelPicker(); });
-    if (c.id === CURRENT_TV_CHANNEL) b.style.borderColor = 'var(--good)';
+    if (c.id === APP_STORE.state.ui.tvChannel) b.style.borderColor = 'var(--good)';
     row.appendChild(b);
     wrap.appendChild(row);
   }
@@ -1885,8 +1744,7 @@ function renderTvChannelPicker() {
 // ============================================================
 
 let AUDIO_CTX = null;
-let AUDIO_SETTINGS = { master: false };
-function audioOn(kind) { return AUDIO_SETTINGS.master && AUDIO_SETTINGS[kind]; }
+function audioOn(kind) { return APP_STORE.state.user.audio.master && APP_STORE.state.user.audio[kind]; }
 function ensureAudio() {
   if (!AUDIO_CTX) {
     try { AUDIO_CTX = new (window.AudioContext || window.webkitAudioContext)(); } catch { return null; }
@@ -1916,27 +1774,62 @@ function playCue(kind) {
   if (kind === 'tornado')         playTone({ freq: 660, dur: 0.4, type: 'triangle', vol: 0.10 });
   else if (kind === 'hurricane')  playTone({ freq: 120, dur: 1.0, type: 'sawtooth', vol: 0.10 });
   else if (kind === 'bitcoin_block') playTone({ freq: 90, dur: 0.18, type: 'sine', vol: 0.14, attack: 0.005, release: 0.18 });
-  else if (kind === 'breaking_news') playTone({ freq: 880, dur: 0.18, type: 'sine', vol: 0.08 });
-  else if (kind === 'iss_pass')   playTone({ freq: 520, dur: 0.5, type: 'sine', vol: 0.08 });
-  else if (kind === 'gdelt_conflict') playTone({ freq: 220, dur: 0.4, type: 'sine', vol: 0.10 });
 }
 
 // ============================================================
 // SETTINGS
 // ============================================================
 
-let SETTINGS_CACHED = null;
+let SETTINGS_RETURN_FOCUS = null;
+
+function setPrimarySurfacesInert(inert) {
+  for (const id of ['topbar', 'statusbar', 'theaterbar', 'overview-surface', 'main']) {
+    const node = $(id);
+    if (node) node.inert = inert;
+  }
+}
+
+function settingsFocusables() {
+  return [
+    $('settings-close'),
+    ...$('pane-settings').querySelectorAll(
+      'button:not([disabled]), input:not([disabled]), textarea:not([disabled]), a[href]',
+    ),
+  ].filter(node => node && node.getClientRects().length);
+}
+
 function openSettings() {
+  SETTINGS_RETURN_FOCUS = document.activeElement;
   $('pane-settings').classList.add('show');
+  $('pane-settings').setAttribute('aria-hidden', 'false');
   $('settings-close').classList.add('show');
+  setPrimarySurfacesInert(true);
   refreshSettings();
+  requestAnimationFrame(() => $('settings-close').focus());
 }
 function closeSettings() {
   $('pane-settings').classList.remove('show');
+  $('pane-settings').setAttribute('aria-hidden', 'true');
   $('settings-close').classList.remove('show');
+  setPrimarySurfacesInert(false);
+  if (SETTINGS_RETURN_FOCUS?.isConnected) SETTINGS_RETURN_FOCUS.focus();
+  SETTINGS_RETURN_FOCUS = null;
 }
 // Global Esc key handler --- closes whichever drawer / overlay is open.
 document.addEventListener('keydown', (e) => {
+  if (e.key === 'Tab' && $('pane-settings').classList.contains('show')) {
+    const nodes = settingsFocusables();
+    if (!nodes.length) return;
+    const current = nodes.indexOf(document.activeElement);
+    if (e.shiftKey && current <= 0) {
+      e.preventDefault();
+      nodes[nodes.length - 1].focus();
+    } else if (!e.shiftKey && current === nodes.length - 1) {
+      e.preventDefault();
+      nodes[0].focus();
+    }
+    return;
+  }
   if (e.key !== 'Escape') return;
   if ($('alert-drawer').classList.contains('show'))  { closeAlertDrawer(); return; }
   if ($('pane-settings').classList.contains('show')) { closeSettings();    return; }
@@ -1977,31 +1870,99 @@ window.closeAlertDrawer = closeAlertDrawer;
 
 async function refreshSettings() {
   const { body } = await fgetJSON('/api/settings');
-  SETTINGS_CACHED = body;
+  APP_STORE.state.lifecycle.settings = body;
   if (!body) return;
+  const normalized = normalizeInitialSettings(body, {
+    panelIds: PANEL_DEFS.map(panel => panel.id),
+    defaultVisible: new Set(['tv', 'conflict', 'cyclones', 'relief', 'iss']),
+    tvChannelIds: new Set(TV_CHANNELS.map(channel => channel.id)),
+  });
+  APP_STORE.update('user', {
+    watchlist: normalized.watchlist,
+    watchRegions: normalized.watchRegions,
+    notifications: normalized.notifications,
+    notificationState: normalized.notificationState,
+    wallDisplay: normalized.wallDisplay,
+  });
+  WATCH_CENTER_CONTROLLER?.refreshSettings();
   for (const k of Object.keys(body.keys || {})) {
     const el2 = $('ks-' + k);
     if (el2) {
-      el2.textContent = body.keys[k] ? 'connected' : 'not set';
+      el2.textContent = body.keys[k] ? 'configured' : 'not set';
       el2.classList.toggle('on', !!body.keys[k]);
     }
     const input = $('key-' + k);
     if (input) input.value = '';
   }
-  AUDIO_SETTINGS = Object.assign({}, body.audio || {});
+  APP_STORE.state.user.audio = Object.assign({}, body.audio || {});
   for (const k of Object.keys(body.audio || {})) {
     const t = $('aud-' + k);
-    if (t) t.classList.toggle('on', !!body.audio[k]);
+    if (t) {
+      t.classList.toggle('on', !!body.audio[k]);
+      t.setAttribute('aria-pressed', String(!!body.audio[k]));
+    }
   }
   // Render the panel toggle list (the visibility is already applied at boot).
   renderPanelToggles();
   renderTvChannelPicker();
+  await refreshProviderAttributions();
+}
+
+async function refreshProviderAttributions() {
+  const container = $('provider-attributions');
+  if (!container || PROVIDER_CATALOG_LOADED) return;
+  let body;
+  let status = 0;
+  try {
+    ({ body, status } = await fgetJSON('/api/providers'));
+  } catch {}
+  const items = Array.isArray(body?.items)
+    ? body.items.slice(0, 100).filter(item => item && typeof item === 'object')
+    : [];
+  if (status !== 200 || !items.length) {
+    container.replaceChildren(el('div', 'empty', 'Source terms are temporarily unavailable.'));
+    return;
+  }
+  container.replaceChildren();
+  const groups = [
+    ['Overview sources', items.filter(item => item?.overview === true)],
+    ['Optional and compatibility sources', items.filter(item => item?.overview !== true)],
+  ];
+  for (const [label, sources] of groups) {
+    if (!sources.length) continue;
+    const section = el('section', 'provider-group');
+    section.append(el('h3', '', `${label} (${sources.length})`));
+    for (const source of sources) {
+      const row = el('div', 'provider-source');
+      const identity = el('div');
+      identity.append(
+        el('strong', '', String(source.attribution || source.id || 'Unknown source')),
+        document.createElement('br'),
+        el('code', '', String(source.id || 'unknown')),
+      );
+      row.append(identity);
+      const termsUrl = safeHttpUrl(source.terms);
+      if (termsUrl) {
+        const link = el('a', '', 'Terms / policy');
+        link.href = termsUrl;
+        link.target = '_blank';
+        link.rel = 'noopener';
+        row.append(link);
+      } else {
+        row.append(el('span', '', 'Publisher terms'));
+      }
+      const auth = source.auth === 'none' ? 'No API key' : `Authentication: ${source.auth}`;
+      row.append(el('div', 'provider-policy', `${auth} · ${source.decision || 'reviewed'}`));
+      section.append(row);
+    }
+    container.append(section);
+  }
+  PROVIDER_CATALOG_LOADED = true;
 }
 
 async function saveKeys() {
   const patch = { keys: {} };
-  for (const k of ['aisstream', 'nasa_firms', 'opensky_id', 'opensky_secret',
-                   'openweathermap', 'fred', 'finnhub']) {
+  for (const k of ['nasa_firms']) {
     const v = ($('key-' + k) || {}).value;
     if (v != null && v !== '') patch.keys[k] = v.trim();
   }
@@ -2012,11 +1973,10 @@ async function saveKeys() {
   await refreshSettings();
 }
 async function clearAllKeys() {
-  const ok = await showDangerConfirm('Erase all stored API keys?', 'Clear keys', 'Clear all');
+  const ok = await showDangerConfirm('Erase the stored NASA FIRMS key?', 'Clear key', 'Clear');
   if (!ok) return;
   const patch = { keys: {} };
-  for (const k of ['aisstream', 'nasa_firms', 'opensky_id', 'opensky_secret',
-                   'openweathermap', 'fred', 'finnhub']) patch.keys[k] = '';
+  patch.keys.nasa_firms = '';
   await fget('/api/settings', {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(patch),
@@ -2025,9 +1985,13 @@ async function clearAllKeys() {
 }
 
 async function toggleAudio(kind) {
-  const next = !AUDIO_SETTINGS[kind];
-  AUDIO_SETTINGS[kind] = next;
-  const t = $('aud-' + kind); if (t) t.classList.toggle('on', next);
+  const next = !APP_STORE.state.user.audio[kind];
+  APP_STORE.state.user.audio[kind] = next;
+  const t = $('aud-' + kind);
+  if (t) {
+    t.classList.toggle('on', next);
+    t.setAttribute('aria-pressed', String(next));
+  }
   if (next && kind === 'master') ensureAudio();
   await fget('/api/settings', {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -2058,31 +2022,19 @@ function showDangerConfirm(message, title, accept) {
 // SHUTDOWN
 // ============================================================
 
-let SHUTDOWN_IN_PROGRESS = false;
 async function shutdownApp() {
-  if (SHUTDOWN_IN_PROGRESS) return;
+  if (APP_STORE.state.lifecycle.shuttingDown) return;
   const ok = await showDangerConfirm(
     'This stops the local Foglight server and closes the desktop app.',
     'Shut down Foglight', 'Shut down');
   if (!ok) return;
-  SHUTDOWN_IN_PROGRESS = true;
+  APP_STORE.state.lifecycle.shuttingDown = true;
   $('shutdown-overlay').classList.add('show');
   try {
-    await fetch('/api/shutdown', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+    await fget('/api/shutdown', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
   } catch {}
   setTimeout(() => { try { if (window.closeApp) window.closeApp(); } catch {} }, 350);
   setTimeout(() => { try { window.close(); } catch {} }, 1200);
-}
-
-// ============================================================
-// UTIL
-// ============================================================
-
-function escapeHtml(s) {
-  if (s == null) return '';
-  return String(s).replace(/[&<>"']/g, c => ({
-    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
-  }[c]));
 }
 
 // ============================================================
@@ -2095,27 +2047,30 @@ async function loadInitialSettings() {
   try {
     const { body } = await fgetJSON('/api/settings');
     if (body) {
-      PANELS_VISIBLE = Object.assign({}, body.panels || {});
-      for (const p of PANEL_DEFS) {
-        if (PANELS_VISIBLE[p.id] == null) {
-          PANELS_VISIBLE[p.id] = SITREP_ON.has(p.id);
-        }
-      }
-      AUDIO_SETTINGS = Object.assign({}, body.audio || {});
-      if (body.tv_channel && TV_CHANNELS.some(c => c.id === body.tv_channel)) {
-        CURRENT_TV_CHANNEL = body.tv_channel;
-      }
-      if (Array.isArray(body.watchlist)) {
-        WATCHLIST = body.watchlist.slice();
-        // Populate the settings textarea on first paint.
-        setTimeout(() => {
-          const ta = $('watchlist-text');
-          if (ta) ta.value = WATCHLIST.join('\n');
-        }, 0);
-      }
-      if (Array.isArray(body.annotations)) {
-        ANNOTATIONS = body.annotations.slice();
-      }
+      APP_STORE.update('lifecycle', { settings: body });
+      const normalized = normalizeInitialSettings(body, {
+        panelIds: PANEL_DEFS.map(panel => panel.id),
+        defaultVisible: SITREP_ON,
+        tvChannelIds: new Set(TV_CHANNELS.map(channel => channel.id)),
+      });
+      APP_STORE.update('ui', {
+        panels: normalized.panels,
+        tvChannel: normalized.tvChannel,
+        displayMode: normalized.displayMode,
+      });
+      APP_STORE.update('user', {
+        audio: normalized.audio,
+        watchlist: normalized.watchlist,
+        annotations: normalized.annotations,
+        watchRegions: normalized.watchRegions,
+        notifications: normalized.notifications,
+        notificationState: normalized.notificationState,
+        wallDisplay: normalized.wallDisplay,
+      });
+      setTimeout(() => {
+        const textarea = $('watchlist-text');
+        if (textarea) textarea.value = APP_STORE.state.user.watchlist.join('\n');
+      }, 0);
     }
   } catch {}
 }
@@ -2127,7 +2082,97 @@ function wireTheaterBar() {
   document.querySelector('#theaterbar .t-btn[data-theater="global"]')?.classList.add('active');
 }
 
+function wireStaticControls() {
+  $('action-settings').addEventListener('click', openSettings);
+  $('action-speak').addEventListener('click', speakBriefing);
+  $('action-brief').addEventListener('click', generateBriefing);
+  $('action-fullscreen').addEventListener('click', toggleFullscreen);
+  $('settings-close').addEventListener('click', closeSettings);
+  $('save-watchlist').addEventListener('click', saveWatchlist);
+  $('clear-annotations').addEventListener('click', clearAllAnnotations);
+  $('save-keys').addEventListener('click', saveKeys);
+  $('clear-keys').addEventListener('click', clearAllKeys);
+  $('alert-close').addEventListener('click', closeAlertDrawer);
+  document.querySelectorAll('.settings-back').forEach(button =>
+    button.addEventListener('click', closeSettings));
+  document.querySelectorAll('.js-shutdown').forEach(button =>
+    button.addEventListener('click', shutdownApp));
+  document.querySelectorAll('[data-audio]').forEach(button =>
+    button.addEventListener('click', () => toggleAudio(button.dataset.audio)));
+}
+
+function runRefresh(fn) {
+  return Promise.resolve().then(fn).catch(error => {
+    console.warn(`[foglight] ${fn.name || 'refresh'} failed`, error);
+    recordFreshness(fn.name || 'refresh', 'error');
+  });
+}
+
 async function start() {
+  wireStaticControls();
+  await loadSession();
+  await loadInitialSettings();
+
+  let appConfig = {};
+  try {
+    const response = await fgetJSON('/api/app-config');
+    if (response.status === 200 && response.body) appConfig = response.body;
+  } catch {}
+  OPEN_METEO_ENABLED = appConfig.open_meteo_enabled === true;
+  YAHOO_FINANCE_ENABLED = appConfig.yahoo_finance_enabled === true;
+
+  if (appConfig.overview_enabled) {
+    initializeDisplayModes();
+    WATCH_CENTER_CONTROLLER = createWatchCenterController({
+      getJSON: fgetJSON,
+      request: fget,
+      store: APP_STORE,
+      openIncident: (incidentId, opener) => OVERVIEW_CONTROLLER?.openIncident(incidentId, opener),
+      printSelected: () => OVERVIEW_CONTROLLER?.printSelectedBriefing() || false,
+      getIncidents: () => OVERVIEW_CONTROLLER?.getIncidents() || [],
+      cycleIncident: incidentId => OVERVIEW_CONTROLLER?.cycleIncident(incidentId) || false,
+      beginMapPick: () => OVERVIEW_CONTROLLER?.beginMapPick() || false,
+      cancelMapPick: () => OVERVIEW_CONTROLLER?.cancelMapPick() || false,
+    });
+    OVERVIEW_CONTROLLER = createOverviewController({
+      getJSON: fgetJSON,
+      store: APP_STORE,
+      onAddPin: addAnnotationFromForm,
+      onIncidentChanges: changes => WATCH_CENTER_CONTROLLER.processChanges(changes),
+      onSnapshot: value => WATCH_CENTER_CONTROLLER.updateSnapshot(value),
+      onMapPick: value => WATCH_CENTER_CONTROLLER.useMapCoordinates(value),
+    });
+    WATCH_CENTER_CONTROLLER.start();
+    window.__foglightWatchCenter = WATCH_CENTER_CONTROLLER;
+    const isFirstRun = !APP_STORE.state.lifecycle.settings?.first_run_done;
+    const initialOverviewLoad = OVERVIEW_CONTROLLER.start({ isFirstRun });
+    const initialMode = ['overview', 'standard', 'command'].includes(APP_STORE.state.ui.displayMode)
+      ? APP_STORE.state.ui.displayMode : appConfig.default_mode || 'overview';
+    await setDisplayMode(initialMode, { persist: false, focus: false });
+    if (isFirstRun) {
+      initialOverviewLoad.then(success => {
+        if (!success) return;
+        fget('/api/settings', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ first_run_done: true }),
+        }).catch(() => {});
+      });
+    }
+    return;
+  }
+
+  APP_STORE.update('ui', { displayMode: 'standard' });
+  document.body.className = 'mode-standard';
+  await startStandardDashboard();
+}
+
+let STANDARD_STARTED = false;
+let OVERVIEW_CONTROLLER = null;
+let WATCH_CENTER_CONTROLLER = null;
+
+async function startStandardDashboard() {
+  if (STANDARD_STARTED) return;
+  STANDARD_STARTED = true;
   // Pre-fill the ticker tracks immediately with placeholder pills so the
   // user doesn't see two empty bars while the RSS feeds load (the negative
   // animation-delay means the ticker is mid-cycle on first paint --- and
@@ -2140,7 +2185,6 @@ async function start() {
     '<span class="ti-crypto"><span class="sym">markets</span><span>loading</span></span>'
   ).repeat(50);
 
-  await loadInitialSettings();
   initMap();
   applyPanelVisibility();
 
@@ -2148,7 +2192,7 @@ async function start() {
   // works while muted in every modern browser). The overlay invites a
   // click to unmute, which gives us the user gesture needed for audio.
   renderTvTabs();
-  const ch = TV_CHANNELS.find(c => c.id === CURRENT_TV_CHANNEL) || TV_CHANNELS[0];
+  const ch = TV_CHANNELS.find(c => c.id === APP_STORE.state.ui.tvChannel) || TV_CHANNELS[0];
   $('tv-frame').src = ytEmbedUrl(ch.ytChannel, true);
   setTvOpenLink(ch.ytChannel);
   $('tv-overlay-label').textContent = `Start ${ch.label}`;
@@ -2159,54 +2203,99 @@ async function start() {
   updateCapitalClocks();
 
   // Initial paint: focus panels (sitrep core).
-  refreshQuakes();
-  refreshConflictHotspots();
-  refreshEonet();
-  refreshFlights();
-  refreshFirms();
-  refreshDefense();
-  refreshCommodities();
-  refreshWeather();
-  refreshConflict();
-  refreshGdacs();
-  refreshCyclones();
-  refreshRelief();
-  refreshSpaceWeather();
-  refreshISS();
-  refreshNews();
-  refreshCrypto();
-  refreshForex();
+  const standardRefreshes = [refreshQuakes, refreshConflictHotspots, refreshEonet,
+   refreshFirms, refreshDefense, refreshWeather,
+   refreshConflict, refreshGdacs, refreshCyclones, refreshRelief,
+   refreshSpaceWeather, refreshISS, refreshNews, refreshCrypto,
+   refreshForex];
+  if (YAHOO_FINANCE_ENABLED) standardRefreshes.push(refreshCommodities);
   // Optional panels: only fetch if visible.
-  refreshBitcoin();
-  refreshWiki();
-  refreshGitHub();
-  refreshSEC();
-  refreshTalk();
-  refreshSettings();
+  const optionalRefreshes = [refreshBitcoin, refreshWiki, refreshGitHub, refreshSEC,
+   refreshTalk, refreshSettings];
+  void runWithConcurrency(standardRefreshes, runRefresh, 3)
+    .then(() => runWithConcurrency(optionalRefreshes, runRefresh, 2))
+    .then(() => {
+      // A short, cache-friendly recovery pass prevents a transient network
+      // outage at launch from leaving slow-cadence panels dead for minutes.
+      setTimeout(() => {
+        void runWithConcurrency(standardRefreshes, runRefresh, 3);
+      }, 15 * 1000);
+    });
 
   // Per-panel cadence (slower than v1 --- this is a "leave open" app).
-  setInterval(refreshQuakes,            120 * 1000);
-  setInterval(refreshConflictHotspots,  240 * 1000);
-  setInterval(refreshEonet,             600 * 1000);
-  setInterval(refreshWeather,           180 * 1000);
-  setInterval(refreshConflict,          240 * 1000);
-  setInterval(refreshGdacs,             300 * 1000);
-  setInterval(refreshCyclones,          600 * 1000);
-  setInterval(refreshRelief,            300 * 1000);
-  setInterval(refreshSpaceWeather,      900 * 1000);
-  setInterval(refreshBitcoin,            45 * 1000);
-  setInterval(refreshWiki,               10 * 1000);
-  setInterval(refreshGitHub,             45 * 1000);
-  setInterval(refreshISS,                10 * 1000);
-  setInterval(refreshSEC,               180 * 1000);
-  setInterval(refreshTalk,              180 * 1000);
-  setInterval(refreshCrypto,            120 * 1000);
-  setInterval(refreshForex,        60 * 60 * 1000);
-  setInterval(refreshNews,              240 * 1000);
-  setInterval(refreshFlights,            30 * 1000);
-  setInterval(refreshFirms,             900 * 1000);
-  setInterval(refreshDefense,           300 * 1000);
-  setInterval(refreshCommodities,       300 * 1000);
+  const every = (fn, ms) => setInterval(() => runRefresh(fn), ms);
+  every(refreshQuakes,            120 * 1000);
+  every(refreshConflictHotspots,  240 * 1000);
+  every(refreshEonet,             600 * 1000);
+  every(refreshWeather,           180 * 1000);
+  every(refreshConflict,          240 * 1000);
+  every(refreshGdacs,             300 * 1000);
+  every(refreshCyclones,          600 * 1000);
+  every(refreshRelief,            300 * 1000);
+  every(refreshSpaceWeather,      900 * 1000);
+  every(refreshBitcoin,            45 * 1000);
+  every(refreshWiki,               10 * 1000);
+  every(refreshGitHub,             45 * 1000);
+  every(refreshISS,                10 * 1000);
+  every(refreshSEC,               180 * 1000);
+  every(refreshTalk,              180 * 1000);
+  every(refreshCrypto,            120 * 1000);
+  every(refreshForex,        60 * 60 * 1000);
+  every(refreshNews,              240 * 1000);
+  // Community aircraft positions remain an explicit experimental seam. They
+  // are not fetched or scheduled by the zero-configuration default surface.
+  every(refreshFirms,             900 * 1000);
+  every(refreshDefense,           300 * 1000);
+  if (YAHOO_FINANCE_ENABLED) every(refreshCommodities, 300 * 1000);
+}
+
+function initializeDisplayModes() {
+  const navigation = $('display-modes');
+  navigation.hidden = false;
+  for (const button of navigation.querySelectorAll('[data-display-mode]')) {
+    button.setAttribute('aria-pressed', 'false');
+    button.addEventListener('click', () => {
+      setDisplayMode(button.dataset.displayMode, { persist: true, focus: 'heading' });
+    });
+  }
+  navigation.addEventListener('keydown', event => {
+    if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+    event.preventDefault();
+    const modes = ['overview', 'standard', 'command'];
+    const current = modes.indexOf(APP_STORE.state.ui.displayMode);
+    const next = event.key === 'Home' ? 0 : event.key === 'End' ? modes.length - 1
+      : (current + (event.key === 'ArrowRight' ? 1 : -1) + modes.length) % modes.length;
+    setDisplayMode(modes[next], { persist: true, focus: 'button' });
+  });
+}
+
+async function setDisplayMode(mode, { persist = true, focus = 'heading' } = {}) {
+  if (!['overview', 'standard', 'command'].includes(mode)) mode = 'overview';
+  APP_STORE.update('ui', { displayMode: mode });
+  document.body.classList.remove('mode-overview', 'mode-standard', 'mode-command');
+  document.body.classList.add(`mode-${mode}`);
+  for (const button of document.querySelectorAll('[data-display-mode]')) {
+    const active = button.dataset.displayMode === mode;
+    button.setAttribute('aria-pressed', String(active));
+    button.tabIndex = active ? 0 : -1;
+    if (active && focus === 'button') button.focus();
+  }
+  if (mode === 'standard') {
+    OVERVIEW_CONTROLLER?.closeDrawer();
+    WATCH_CENTER_CONTROLLER?.stop();
+    await startStandardDashboard();
+  }
+  else {
+    OVERVIEW_CONTROLLER?.render();
+    OVERVIEW_CONTROLLER?.activateMap();
+  }
+  if (persist) {
+    fget('/api/settings', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ display_mode: mode }),
+    }).catch(() => {});
+  }
+  if (focus === 'heading' && mode !== 'standard') $('overview-title').focus();
 }
 
 window.generateBriefing = generateBriefing;
@@ -2218,4 +2307,13 @@ window.clearAllKeys = clearAllKeys;
 window.toggleAudio = toggleAudio;
 window.shutdownApp = shutdownApp;
 
-document.addEventListener('DOMContentLoaded', start);
+document.addEventListener('DOMContentLoaded', () => {
+  start().catch(error => {
+    console.error('[foglight] startup failed', error);
+    const banner = $('breaking-banner');
+    if (banner) {
+      banner.textContent = 'Foglight failed to start. Check the local runtime log.';
+      banner.classList.add('show');
+    }
+  });
+});

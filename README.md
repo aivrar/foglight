@@ -1,70 +1,93 @@
 # Foglight
 
+[![Latest release](https://img.shields.io/github/v/release/aivrar/foglight?display_name=tag)](https://github.com/aivrar/foglight/releases/latest)
+[![Downloads](https://img.shields.io/github/downloads/aivrar/foglight/total)](https://github.com/aivrar/foglight/releases)
+[![Windows CI](https://github.com/aivrar/foglight/actions/workflows/ci.yml/badge.svg)](https://github.com/aivrar/foglight/actions/workflows/ci.yml)
 ![Platform: Windows](https://img.shields.io/badge/platform-Windows%2010%2F11-0078D4)
 ![Portable](https://img.shields.io/badge/portable-single%20EXE-2ea44f)
-![Python](https://img.shields.io/badge/Python-bundled-3776AB)
-![WebView2](https://img.shields.io/badge/UI-WebView2-5C2D91)
+![API keys: none required](https://img.shields.io/badge/API%20keys-none%20required-00a67d)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
-**Foglight** is a local-first desktop situation room for live global events:
-earthquakes, severe weather, conflict wires, humanitarian reports, market
-tickers, open web activity, and live news video in one dense dashboard.
+**Foglight** is a zero-setup, local-first Windows dashboard for live public
+events. It brings severe weather, earthquakes, natural hazards, humanitarian
+updates, aviation and marine advisories, public signals, and live news into one
+fast desktop view.
 
-The Windows release is a **single native desktop `.exe`**. It bundles Python,
-the local HTTP server, the WebView desktop shell, and the app UI. End users do
-not need Python, WSL, Docker, Git, Node, or a Linux distro installed.
+The release is one portable **`Foglight.exe`**. No installer, account, cloud
+backend, or required API key. End users do not need Python, WSL, Docker, Git,
+Node, or a Linux distribution.
 
-Foglight is MIT licensed and free for everyone to use, modify, distribute, and
-build on.
+**[Download the latest Foglight.exe](https://github.com/aivrar/foglight/releases/latest/download/Foglight.exe)**
+
+Foglight is MIT licensed and free to use, modify, distribute, and build on.
 
 ## Screenshots
 
-![Foglight dashboard](docs/screenshots/hero.PNG)
+### Overview
+
+Prioritized incidents, explainable scoring, source freshness, local watch tools,
+and a bundled offline world map.
+
+![Foglight Overview showing prioritized live incidents and the offline map](docs/screenshots/hero.PNG)
+
+### Standard
+
+The original high-density situation room: live map overlays, source rails,
+tickers, public-data panels, market context, and live news video.
+
+![Foglight Standard dashboard showing the global map, live feeds, and news video](docs/screenshots/standard.PNG)
+
+### Command
+
+A tighter incident-first layout for wall displays and long-running monitoring.
+
+![Foglight Command view showing a compact prioritized incident list and clustered map](docs/screenshots/command.PNG)
 
 ## What It Does
 
-Foglight watches public data streams and turns them into a single operational
-view:
+Foglight turns public feeds into three purpose-built views:
 
-- Global map overlays for earthquakes, hazards, weather, conflict, ISS, fires,
-  flights, and ship/air sources when optional keys are configured.
-- Live event panels for USGS quakes, NWS alerts, NOAA cyclones, GDACS, EONET,
-  ReliefWeb, GDELT, and RSS wires.
-- Market and internet pulse panels for Bitcoin, crypto, forex, commodities,
-  GitHub, SEC EDGAR, Wikipedia edits, Hacker News, and Reddit.
-- Live TV embeds for major news streams, with a YouTube fallback link when an
-  embed is blocked.
-- Local settings for panel visibility, watchlists, RSS feeds, API keys, and
-  ambient audio cues.
+- **Overview** prioritizes current incidents with explainable evidence, category
+  filters, source health, change tracking, local search, watch regions, and safe
+  CSV/GeoJSON export.
+- **Standard** provides the dense global map and live source rails for weather,
+  earthquakes, hazards, humanitarian reports, public activity, markets, and
+  news video.
+- **Command** compresses Overview for wall displays and long-running monitoring.
+- The bundled Natural Earth base map, cached history, settings, watch regions,
+  and pins continue to work when external feeds are unavailable.
+- Fourteen canonical public-data providers work without accounts or keys. NASA
+  FIRMS remains an optional extra layer for users who already have a key.
 
 ## Why It Exists
 
-Foglight is built for people who want a fast, local, no-account overview of
-what is happening across the planet: weather risk, earthquakes, conflict wires,
-humanitarian updates, public market signals, internet activity, and live video.
-It is useful as an OSINT desk, newsroom side monitor, wall display, emergency
-awareness screen, or always-on desktop command center.
+Foglight is for people who want a fast, local, no-account picture of what is
+happening across the planet without assembling APIs or running infrastructure.
+It works as a newsroom side monitor, severe-weather and hazard display,
+humanitarian-awareness screen, wall display, or always-on desktop dashboard.
 
 ## Feature Matrix
 
 | Area | Included |
 |---|---|
 | Desktop release | Single `Foglight.exe`, native WebView2 window, no installer |
-| Live map | Dark global map, quake markers, weather polygons, conflict hotspots, hazards, ISS, optional fires/flights/ships |
-| Hazard monitoring | USGS earthquakes, volcanoes, NOAA cyclones, GDACS disasters, EONET natural events, NWS alerts, tsunami feeds |
-| Conflict and news | GDELT conflict feeds, UN, DW, France 24, BBC, NPR, Al Jazeera, defense/cyber RSS feeds |
+| Overview | Prioritized incidents, category filters, change summaries, source health, watch regions, search, export, and incident timelines |
+| Command | Compact incident-first density for wall displays and continuous monitoring |
+| Live map | Dark global map, quake markers, weather polygons, conflict hotspots, hazards, ISS, aviation advisories, and optional fires |
+| Hazard monitoring | USGS earthquakes, volcanoes, NOAA cyclones, GDACS disasters, EONET natural events, NWS alerts, tsunami feeds, and NOAA SIGMETs |
+| Current events and news | UN, DW, France 24, BBC, NPR, Al Jazeera, and configurable RSS feeds |
 | Humanitarian | ReliefWeb situation reports and update stream |
-| Markets | Bitcoin mempool/fees/blocks, crypto tickers, forex, commodities, optional FRED/Finnhub keys |
+| Markets | Bitcoin mempool/fees/blocks, crypto tickers, forex, and conditional commodity futures |
 | Internet pulse | GitHub public events, SEC EDGAR filings, Wikipedia edits, Hacker News, Reddit |
 | Live TV | Major YouTube live news embeds, default channel setting, external fallback link |
-| Local settings | Panel toggles, watchlist, custom RSS feeds, optional API keys, ambient audio toggles |
-| Privacy model | Local-only app state, localhost server, masked keys, no Foglight cloud account |
+| Local tools | Watch regions, keyword migration, pins, local search, CSV/GeoJSON export, notification preferences, and custom RSS feeds |
+| Privacy model | Local-only app state, loopback server, masked optional keys, no Foglight cloud account |
 
 Full details are in [docs/FEATURES.md](docs/FEATURES.md).
 
 ## Quick Start
 
-Download the latest release asset:
+Download the latest verified release asset:
 
 **[Download Foglight.exe](https://github.com/aivrar/foglight/releases/latest/download/Foglight.exe)**
 
@@ -85,7 +108,9 @@ opens a native WebView window, and stores runtime state under:
 %LOCALAPPDATA%\Foglight\
 ```
 
-Use the in-app **Shut down** button to stop the local server and close the app.
+Use the window close control or the in-app **Shut down** button to stop the
+local server and close the app. The release page includes `SHA256SUMS.txt` for
+artifact verification and records whether the build is publisher-signed.
 
 ## Requirements
 
@@ -106,77 +131,72 @@ browser.
 
 | Panel | Source | What It Shows |
 |---|---|---|
-| World Map | Leaflet, CARTO, OpenStreetMap | Global base map and overlays |
+| World Map | Bundled Leaflet and Natural Earth; optional OpenStreetMap tiles | Offline global base map and overlays |
 | Earthquakes | USGS GeoJSON | Recent seismic activity |
 | Severe Weather | NWS api.weather.gov | Active US alerts and polygons |
-| Conflict Watch | GDELT, UN, DW, France 24, defense RSS | Conflict-oriented stream |
-| Major Hazards | NOAA NHC, GDACS, USGS, EONET | Cyclones, disasters, volcanoes, major quakes |
+| Conflict Watch | UN, DW, France 24, defense RSS | Conflict-oriented stream |
+| Major Hazards | NOAA NHC, GDACS, USGS, Smithsonian GVP, tsunami.gov | Cyclones, disasters, volcanoes, tsunami notices, major quakes |
 | Humanitarian Sitreps | ReliefWeb RSS | Humanitarian updates |
 | Bitcoin Pulse | mempool.space | Fees, mempool, blocks, difficulty |
-| Markets | CoinPaprika, Frankfurter, Stooq | Crypto, forex, commodities |
+| Markets | CoinPaprika and Frankfurter; conditional Yahoo compatibility | Crypto, forex, and optional commodity futures |
 | News Ticker | Configured RSS feeds | Rolling headline strip |
 | Wikipedia Edits | Wikimedia EventStreams | Recent public edits |
 | GitHub Pulse | GitHub Events API | Public developer activity |
 | SEC EDGAR | SEC Atom feed | Current filings |
-| HN + Reddit | Firebase HN API, Reddit JSON | Internet trend panel |
+| HN + Reddit | Firebase HN API, Reddit RSS | Internet trend panel |
 | Live TV | YouTube live embeds | Live news video and external fallback |
 
 See [docs/DATA_SOURCES.md](docs/DATA_SOURCES.md) and
 [CREDITS.md](CREDITS.md) for the full source and credit list.
 
-## Optional API Keys
+## Optional API Key
 
-Foglight works without keys, but these optional integrations unlock more map
-and market layers:
+Foglight works without keys. One optional integration unlocks an additional
+map layer:
 
 | Key | Unlocks |
 |---|---|
-| AISstream | Live global ship positions |
 | NASA FIRMS | MODIS/VIIRS near-real-time fire detections |
-| OpenSky | Authenticated aircraft data |
-| OpenWeatherMap | Global weather extensions |
-| FRED | US macro indicators |
-| Finnhub | Indices, earnings, market news |
 
-Keys are stored locally under `%LOCALAPPDATA%\Foglight\state\settings.json`.
-The settings API masks stored key values before returning them to the UI.
+The key is stored locally under `%LOCALAPPDATA%\Foglight\state\settings.json`.
+The settings API masks its value before returning settings to the UI.
 
 ## Project Structure
 
 ```text
 foglight/
-|-- .github/
-|   |-- ISSUE_TEMPLATE/
-|   `-- pull_request_template.md
-|-- assets/
-|   |-- foglight.ico
-|   `-- foglight-icon.png
-|-- docs/
-|   |-- screenshots/
-|   |-- BUILD_WINDOWS.md
-|   |-- DATA_SOURCES.md
-|   |-- FEATURES.md
-|   |-- FILE_TREE.md
-|   |-- RELEASE_CHECKLIST.md
-|   `-- REPOSITORY_SETUP.md
-|-- web/
-|   `-- app.js
+|-- .github/              # Windows CI, signed-release workflow, templates
+|-- assets/               # Windows icon and generated version metadata
+|-- config/               # Versioned provider registry and bounded datasets
+|-- docs/                 # Architecture, sources, screenshots, release evidence
+|-- foglight_core/        # Models, providers, scheduler, storage, correlation
+|-- scripts/              # Smoke tests, diagnostics, baselines, secret scan
+|-- tests/                # Python, JavaScript, browser, visual, packaged tests
+|-- web/                  # Overview, Standard, Command, maps, watches, settings
 |-- build_windows.py
 |-- foglight_native.py
 |-- foglight_native.spec
 |-- foglight_server.py
-|-- foglight_spec.md
 |-- index.html
 |-- requirements-build.txt
-|-- CREDITS.md
-|-- CHANGELOG.md
-|-- CONTRIBUTING.md
-|-- SECURITY.md
-|-- LICENSE
+|-- requirements-dev.txt
+|-- pyproject.toml
 `-- README.md
 ```
 
 For a more detailed file map, see [docs/FILE_TREE.md](docs/FILE_TREE.md).
+
+## Architecture And Audit Record
+
+The researched architecture and gated execution tasklist for the incident-based
+Overview, timeline, offline map, and additional keyless providers are kept in:
+
+- [V2 planning research](docs/FOGLIGHT_V2_PLANNING_RESEARCH.md)
+- [V2 phased execution plan](docs/FOGLIGHT_V2_EXECUTION_PLAN.md)
+
+These documents are the research, phased implementation, and independent audit
+record for the features present in this source tree. Current release evidence
+is summarized in [docs/RELEASE_EVIDENCE.md](docs/RELEASE_EVIDENCE.md).
 
 ## Build From Source
 
@@ -192,8 +212,9 @@ Developer build requirements:
 Build:
 
 ```powershell
-python -m pip install -r requirements-build.txt
-python .\build_windows.py
+python -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r requirements-build.txt
+.\.venv\Scripts\python.exe .\build_windows.py
 ```
 
 Output:
@@ -236,10 +257,13 @@ $env:FOGLIGHT_PORT = "19877"
 ## Security And Privacy
 
 - Native launcher binds the server to `127.0.0.1`.
-- State-changing endpoints require same-origin requests.
-- RSS proxy rejects localhost and private-network targets.
+- State-changing endpoints require an ephemeral per-launch token.
+- Host validation blocks DNS-rebinding origins.
+- RSS proxy rejects localhost/private-network targets and revalidates redirects.
 - API keys are stored only in the local Foglight state directory.
 - `/api/settings` returns key status only, not full stored key values.
+- Cache filenames are hashed and key-bearing URLs are redacted from logs/errors.
+- Browser responses use a restrictive Content Security Policy; the reviewed Leaflet runtime is bundled locally.
 - No Foglight account or hosted backend is used.
 
 See [SECURITY.md](SECURITY.md) for the disclosure and local-risk notes.
@@ -250,18 +274,25 @@ See [SECURITY.md](SECURITY.md) for the disclosure and local-risk notes.
 2. Run source checks:
 
    ```powershell
-   python -m py_compile .\foglight_server.py .\foglight_native.py .\build_windows.py
+   .\.venv\Scripts\python.exe -m ruff check .
+   .\.venv\Scripts\python.exe -m pytest -q
    node --check .\web\app.js
+   npm run test:js
+   npm run test:browser
+   .\.venv\Scripts\python.exe -m pip_audit -r .\requirements-build.txt
    ```
 
 3. Build the exe:
 
    ```powershell
-   python .\build_windows.py
+   .\.venv\Scripts\python.exe .\build_windows.py
    ```
 
-4. Smoke test `dist\Foglight.exe`.
-5. Create a GitHub Release and upload `dist\Foglight.exe` as `Foglight.exe`.
+4. Run both packaged release smoke scripts from the release checklist.
+5. Record whether the artifact is signed or unsigned. Publishers with a trusted
+   code-signing identity may use `--require-signature`; users never need one.
+6. Create a GitHub Release and upload `dist\Foglight.exe` plus
+   `dist\SHA256SUMS.txt`.
 
 Full checklist: [docs/RELEASE_CHECKLIST.md](docs/RELEASE_CHECKLIST.md).
 
@@ -269,7 +300,7 @@ Full checklist: [docs/RELEASE_CHECKLIST.md](docs/RELEASE_CHECKLIST.md).
 
 Foglight stands on public data providers, open-source libraries, and platform
 tools. Credits are tracked in [CREDITS.md](CREDITS.md), including Leaflet,
-OpenStreetMap, CARTO, PyInstaller, pywebview, Microsoft Edge WebView2,
+Natural Earth, OpenStreetMap, PyInstaller, pywebview, Microsoft Edge WebView2,
 pythonnet, Pillow, and the public data providers used by the dashboard.
 
 ## License

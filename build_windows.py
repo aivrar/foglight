@@ -2,19 +2,25 @@
 """Build the single-file Windows Foglight executable."""
 from __future__ import annotations
 
+import argparse
+import hashlib
+import json
 import os
+import re
+import shutil
 import subprocess
 import sys
 from pathlib import Path
 
 from PIL import Image, ImageDraw, ImageFilter
 
-
 ROOT = Path(__file__).resolve().parent
 ASSET_DIR = ROOT / "assets"
 ICON_PATH = ASSET_DIR / "foglight.ico"
 PNG_ICON_PATH = ASSET_DIR / "foglight-icon.png"
+VERSION_PATH = ASSET_DIR / "foglight-version.txt"
 SPEC_PATH = ROOT / "foglight_native.spec"
+PACKAGE_PATH = ROOT / "package.json"
 
 
 def make_icon() -> None:
@@ -69,6 +75,57 @@ def make_icon() -> None:
     rounded.save(ICON_PATH, sizes=sizes)
 
 
+def make_version_info() -> Path:
+    """Generate deterministic Windows version metadata from package.json."""
+    package = json.loads(PACKAGE_PATH.read_text(encoding="utf-8"))
+    version = package.get("version")
+    if not isinstance(version, str):
+        raise RuntimeError("package.json version must be a string")
+    match = re.fullmatch(r"(\d+)\.(\d+)\.(\d+)(?:\.(\d+))?", version)
+    if not match:
+        raise RuntimeError("package.json version must contain three or four integers")
+    parts = tuple(int(value or 0) for value in match.groups())
+    if any(value > 65_535 for value in parts):
+        raise RuntimeError("Windows version components must not exceed 65535")
+    numeric = ", ".join(str(value) for value in parts)
+    dotted = ".".join(str(value) for value in parts)
+    VERSION_PATH.write_text(
+        f"""VSVersionInfo(
+  ffi=FixedFileInfo(
+    filevers=({numeric}),
+    prodvers=({numeric}),
+    mask=0x3f,
+    flags=0x0,
+    OS=0x40004,
+    fileType=0x1,
+    subtype=0x0,
+    date=(0, 0)
+  ),
+  kids=[
+    StringFileInfo([
+      StringTable(
+        '040904B0',
+        [
+          StringStruct('CompanyName', 'Foglight contributors'),
+          StringStruct('FileDescription', 'Foglight Desktop Situation Room'),
+          StringStruct('FileVersion', '{dotted}'),
+          StringStruct('InternalName', 'Foglight'),
+          StringStruct('LegalCopyright', 'Copyright (c) 2026 Foglight contributors'),
+          StringStruct('OriginalFilename', 'Foglight.exe'),
+          StringStruct('ProductName', 'Foglight'),
+          StringStruct('ProductVersion', '{version}')
+        ]
+      )
+    ]),
+    VarFileInfo([VarStruct('Translation', [1033, 1200])])
+  ]
+)
+""",
+        encoding="utf-8",
+    )
+    return VERSION_PATH
+
+
 def write_spec() -> None:
     spec = f"""# -*- mode: python ; coding: utf-8 -*-
 from PyInstaller.utils.hooks import collect_all
@@ -84,6 +141,7 @@ a = Analysis(
     datas=[
         ('index.html', '.'),
         ('web', 'web'),
+        ('config', 'config'),
     ] + webview_datas + pythonnet_datas + clr_datas,
     hiddenimports=webview_hiddenimports + pythonnet_hiddenimports + clr_hiddenimports + [
         'webview.platforms.winforms',
@@ -109,7 +167,7 @@ exe = EXE(
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
-    upx=True,
+    upx=False,
     upx_exclude=[],
     runtime_tmpdir=None,
     console=False,
@@ -118,21 +176,123 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon={str(ICON_PATH)!r},
+    icon={str(ICON_PATH.relative_to(ROOT))!r},
+    version={str(VERSION_PATH.relative_to(ROOT))!r},
 )
 """
     SPEC_PATH.write_text(spec, encoding="utf-8")
 
 
-def build() -> None:
+def find_signtool() -> str | None:
+    configured = os.environ.get("FOGLIGHT_SIGNTOOL", "").strip()
+    if configured:
+        return configured
+    discovered = shutil.which("signtool")
+    if discovered:
+        return discovered
+    program_files = os.environ.get("ProgramFiles(x86)", "").strip()
+    if not program_files:
+        return None
+    kits = Path(program_files) / "Windows Kits" / "10" / "bin"
+    if kits.is_dir():
+        candidates = sorted(kits.glob("*/x64/signtool.exe"), reverse=True)
+        if candidates:
+            return str(candidates[0])
+    return None
+
+
+def sign_executable(exe_path: Path, *, required: bool = False) -> bool:
+    """Authenticode-sign when a certificate thumbprint is provided."""
+    thumbprint = re.sub(r"\s+", "", os.environ.get("FOGLIGHT_SIGN_CERT_SHA1", ""))
+    if not thumbprint:
+        if required:
+            raise RuntimeError(
+                "production signing is required but FOGLIGHT_SIGN_CERT_SHA1 is unset"
+            )
+        print("[build] FOGLIGHT_SIGN_CERT_SHA1 is unset; executable remains unsigned")
+        return False
+    if not re.fullmatch(r"[A-Fa-f0-9]{40}", thumbprint):
+        raise RuntimeError("FOGLIGHT_SIGN_CERT_SHA1 must be a 40-digit SHA-1 thumbprint")
+
+    signtool = find_signtool()
+    if not signtool:
+        raise RuntimeError("FOGLIGHT_SIGN_CERT_SHA1 is set but signtool was not found")
+
+    command = [
+        signtool, "sign", "/sha1", thumbprint, "/fd", "SHA256",
+        "/d", "Foglight", "/du", "https://github.com/aivrar/foglight",
+    ]
+    timestamp_url = os.environ.get("FOGLIGHT_TIMESTAMP_URL", "").strip()
+    if timestamp_url:
+        command.extend(["/tr", timestamp_url, "/td", "SHA256"])
+    elif required:
+        raise RuntimeError(
+            "production signing requires an RFC 3161 FOGLIGHT_TIMESTAMP_URL"
+        )
+    command.append(str(exe_path))
+    subprocess.run(command, cwd=ROOT, check=True)
+    subprocess.run(
+        [signtool, "verify", "/pa", "/v", str(exe_path)],
+        cwd=ROOT,
+        check=True,
+    )
+    return True
+
+
+def write_checksum(exe_path: Path) -> Path:
+    digest = hashlib.sha256()
+    with exe_path.open("rb") as source:
+        for chunk in iter(lambda: source.read(1024 * 1024), b""):
+            digest.update(chunk)
+    checksum_path = exe_path.parent / "SHA256SUMS.txt"
+    checksum_path.write_text(f"{digest.hexdigest()}  {exe_path.name}\n", encoding="ascii")
+    return checksum_path
+
+
+def build(*, require_signature: bool = False) -> None:
+    if require_signature:
+        # Fail before the expensive package build if production credentials or
+        # tooling are not configured.
+        thumbprint = re.sub(
+            r"\s+", "", os.environ.get("FOGLIGHT_SIGN_CERT_SHA1", "")
+        )
+        if not thumbprint:
+            raise RuntimeError(
+                "production signing is required but FOGLIGHT_SIGN_CERT_SHA1 is unset"
+            )
+        if not re.fullmatch(r"[A-Fa-f0-9]{40}", thumbprint):
+            raise RuntimeError(
+                "FOGLIGHT_SIGN_CERT_SHA1 must be a 40-digit SHA-1 thumbprint"
+            )
+        if not os.environ.get("FOGLIGHT_TIMESTAMP_URL", "").strip():
+            raise RuntimeError(
+                "production signing requires an RFC 3161 FOGLIGHT_TIMESTAMP_URL"
+            )
+        if not find_signtool():
+            raise RuntimeError("production signing requires signtool.exe")
     make_icon()
+    make_version_info()
     write_spec()
     subprocess.run(
         [sys.executable, "-m", "PyInstaller", "--clean", "--noconfirm", str(SPEC_PATH)],
         cwd=ROOT,
         check=True,
     )
+    exe_path = ROOT / "dist" / "Foglight.exe"
+    if not exe_path.is_file():
+        raise RuntimeError(f"PyInstaller did not produce {exe_path}")
+    signed = sign_executable(exe_path, required=require_signature)
+    checksum_path = write_checksum(exe_path)
+    print(f"[build] Authenticode: {'verified' if signed else 'not signed'}")
+    print(f"[build] wrote {checksum_path}")
 
 
 if __name__ == "__main__":
-    build()
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--require-signature",
+        action="store_true",
+        help="fail unless the executable is timestamped and passes signtool /pa verification",
+    )
+    arguments = parser.parse_args()
+    build(require_signature=arguments.require_signature)

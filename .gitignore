@@ -7,20 +7,16 @@ __pycache__/
 cache/
 logs/
 state/
-wsl/
 webview2_data/
 
-# Bundled/generated Linux images are release artifacts, not source.
-linux/*.tar
-linux/*.tar.gz
-linux/*.zip
-linux/*.setup_hash
-
 # Browser/dev-tool artifacts
-.playwright-mcp/
+node_modules/
 playwright-report/
 test-results/
 *.trace.zip
+.coverage
+coverage.xml
+htmlcov/
 
 # Build outputs
 build/
@@ -36,6 +32,7 @@ desktop.ini
 .idea/
 
 # Local environment files
+.venv/
 .env
 .env.*
 !.env.example
