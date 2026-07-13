@@ -1,0 +1,40 @@
+{
+  "schema_version": 1,
+  "measured_at": "2026-07-11T23:53:41Z",
+  "environment": {
+    "os": "Windows",
+    "python": "3.13.11",
+    "server_samples": 100,
+    "browser_samples": 20,
+    "browser": "Playwright Chromium"
+  },
+  "server": {
+    "startup_to_ping_ms": 12.732,
+    "process_spawn_to_ping_ms": 679.697,
+    "resident_memory_bytes": 35409920,
+    "local_http": {
+      "/": {"median_ms": 4.512, "p95_ms": 25.636, "body_bytes": 73594},
+      "/api/ping": {"median_ms": 1.01, "p95_ms": 1.286, "body_bytes": 38},
+      "/api/settings": {"median_ms": 1.472, "p95_ms": 17.059, "body_bytes": 1417}
+    }
+  },
+  "browser": {
+    "first_shell_paint_median_ms": 301.671,
+    "first_shell_paint_p95_ms": 331.277,
+    "map_render_median_ms": 458.735,
+    "map_render_p95_ms": 490.04,
+    "first_incident_paint_median_ms": 471.341,
+    "first_incident_paint_p95_ms": 501.789,
+    "used_js_heap_median_bytes": 10000000,
+    "used_js_heap_p95_bytes": 10000000,
+    "dom_content_loaded_median_ms": 271.8,
+    "dom_content_loaded_p95_ms": 297.7
+  },
+  "artifact_bytes": 18993728,
+  "budget_result": "pass",
+  "notes": [
+    "The 250 ms startup budget applies to in-process local server construction through first ping (12.732 ms).",
+    "Process spawn to ping includes starting a separate system Python process and is reported separately, not substituted for the startup budget.",
+    "All measurements use deterministic local fixtures and make no live-provider requests."
+  ]
+}

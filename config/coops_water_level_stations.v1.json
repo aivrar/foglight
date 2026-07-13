@@ -1,0 +1,2715 @@
+{
+  "schema_version": 1,
+  "source_url": "https://api.tidesandcurrents.noaa.gov/mdapi/prod/webapi/stations.json?type=waterlevels&units=metric",
+  "stations": [
+    {
+      "id": "1611400",
+      "name": "Nawiliwili",
+      "state": "HI",
+      "lat": 21.9544,
+      "lon": -159.3561,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "1612340",
+      "name": "Honolulu",
+      "state": "HI",
+      "lat": 21.303333,
+      "lon": -157.86453,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "1612401",
+      "name": "Pearl Harbor",
+      "state": "HI",
+      "lat": 21.3675,
+      "lon": -157.9639,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "1612480",
+      "name": "Mokuoloe",
+      "state": "HI",
+      "lat": 21.433056,
+      "lon": -157.79,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "1615680",
+      "name": "Kahului, Kahului Harbor",
+      "state": "HI",
+      "lat": 20.894945,
+      "lon": -156.469,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "1617433",
+      "name": "Kawaihae",
+      "state": "HI",
+      "lat": 20.0366,
+      "lon": -155.8294,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "1617760",
+      "name": "Hilo, Hilo Bay, Kuhio Bay",
+      "state": "HI",
+      "lat": 19.730278,
+      "lon": -155.05556,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "1619910",
+      "name": "Sand Island, Midway Islands",
+      "state": "UNITED STATES OF AME",
+      "lat": 28.211666,
+      "lon": -177.36,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "1630000",
+      "name": "Apra Harbor, Guam",
+      "state": "UNITED STATES OF AME",
+      "lat": 13.443389,
+      "lon": 144.65636,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "1631428",
+      "name": "Pago Bay, Guam",
+      "state": "UNITED STATES OF AME",
+      "lat": 13.428333,
+      "lon": 144.79889,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "1770000",
+      "name": "Pago Pago, American Samoa",
+      "state": "AMERICAN SAMOA",
+      "lat": -14.28,
+      "lon": -170.69,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "1820000",
+      "name": "Kwajalein, Marshall Islands",
+      "state": "UNITED STATES OF AME",
+      "lat": 8.731667,
+      "lon": 167.73611,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "1890000",
+      "name": "Wake Island, Pacific Ocean",
+      "state": "UNITED STATES OF AME",
+      "lat": 19.290556,
+      "lon": 166.6175,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "2695535",
+      "name": "Bermuda Biological Station",
+      "state": "BERMUDA",
+      "lat": 32.370224,
+      "lon": -64.695724,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "2695540",
+      "name": "Bermuda, St. Georges Island",
+      "state": "BERMUDA",
+      "lat": 32.3734,
+      "lon": -64.7033,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "8311030",
+      "name": "Ogdensburg",
+      "state": "NY",
+      "lat": 44.702778,
+      "lon": -75.494446,
+      "tidal": false,
+      "great_lakes": true
+    },
+    {
+      "id": "8311062",
+      "name": "Alexandria Bay",
+      "state": "NY",
+      "lat": 44.33111,
+      "lon": -75.934525,
+      "tidal": false,
+      "great_lakes": true
+    },
+    {
+      "id": "8410140",
+      "name": "Eastport",
+      "state": "ME",
+      "lat": 44.90461,
+      "lon": -66.98289,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "8411060",
+      "name": "Cutler Farris Wharf",
+      "state": "ME",
+      "lat": 44.6567,
+      "lon": -67.21,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "8413320",
+      "name": "Bar Harbor",
+      "state": "ME",
+      "lat": 44.392193,
+      "lon": -68.20428,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "8418150",
+      "name": "Portland",
+      "state": "ME",
+      "lat": 43.658054,
+      "lon": -70.24416,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "8419870",
+      "name": "Seavey Island",
+      "state": "ME",
+      "lat": 43.079723,
+      "lon": -70.74111,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "8443970",
+      "name": "Boston",
+      "state": "MA",
+      "lat": 42.35389,
+      "lon": -71.05028,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "8447386",
+      "name": "Fall River",
+      "state": "MA",
+      "lat": 41.7043,
+      "lon": -71.1641,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "8447435",
+      "name": "Chatham",
+      "state": "MA",
+      "lat": 41.6885,
+      "lon": -69.9511,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "8447636",
+      "name": "New Bedford Harbor",
+      "state": "MA",
+      "lat": 41.6212,
+      "lon": -70.9137,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "8447930",
+      "name": "Woods Hole",
+      "state": "MA",
+      "lat": 41.523613,
+      "lon": -70.67111,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "8449130",
+      "name": "Nantucket Island",
+      "state": "MA",
+      "lat": 41.285,
+      "lon": -70.0967,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "8452660",
+      "name": "Newport",
+      "state": "RI",
+      "lat": 41.504333,
+      "lon": -71.32614,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "8452944",
+      "name": "Conimicut Light",
+      "state": "RI",
+      "lat": 41.7167,
+      "lon": -71.3433,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "8454000",
+      "name": "Providence",
+      "state": "RI",
+      "lat": 41.807167,
+      "lon": -71.400665,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "8461490",
+      "name": "New London",
+      "state": "CT",
+      "lat": 41.371666,
+      "lon": -72.09556,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "8465705",
+      "name": "New Haven",
+      "state": "CT",
+      "lat": 41.2833,
+      "lon": -72.9083,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "8467150",
+      "name": "Bridgeport",
+      "state": "CT",
+      "lat": 41.17582,
+      "lon": -73.18397,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "8510560",
+      "name": "Montauk",
+      "state": "NY",
+      "lat": 41.048332,
+      "lon": -71.95944,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "8516945",
+      "name": "Kings Point",
+      "state": "NY",
+      "lat": 40.8103,
+      "lon": -73.7649,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "8518750",
+      "name": "The Battery",
+      "state": "NY",
+      "lat": 40.700554,
+      "lon": -74.01417,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "8518962",
+      "name": "Turkey Point Hudson River NERRS",
+      "state": "NY",
+      "lat": 42.0139,
+      "lon": -73.9392,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "8518979",
+      "name": "Coxsackie, Hudson River",
+      "state": "NY",
+      "lat": 42.35264,
+      "lon": -73.79486,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "8531680",
+      "name": "Sandy Hook",
+      "state": "NJ",
+      "lat": 40.4669,
+      "lon": -74.0094,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "8534720",
+      "name": "Atlantic City",
+      "state": "NJ",
+      "lat": 39.356667,
+      "lon": -74.41805,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "8536110",
+      "name": "Cape May",
+      "state": "NJ",
+      "lat": 38.9683,
+      "lon": -74.96,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "8537121",
+      "name": "Ship John Shoal",
+      "state": "NJ",
+      "lat": 39.30539,
+      "lon": -75.37668,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "8539094",
+      "name": "Burlington, Delaware River",
+      "state": "NJ",
+      "lat": 40.0817,
+      "lon": -74.8697,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "8540433",
+      "name": "Marcus Hook",
+      "state": "PA",
+      "lat": 39.811806,
+      "lon": -75.4095,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "8545240",
+      "name": "Philadelphia",
+      "state": "PA",
+      "lat": 39.933056,
+      "lon": -75.14198,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "8546252",
+      "name": "Bridesburg",
+      "state": "PA",
+      "lat": 39.979683,
+      "lon": -75.079315,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "8548989",
+      "name": "Newbold",
+      "state": "PA",
+      "lat": 40.137333,
+      "lon": -74.75183,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "8551762",
+      "name": "Delaware City",
+      "state": "DE",
+      "lat": 39.582195,
+      "lon": -75.588974,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "8551910",
+      "name": "Reedy Point",
+      "state": "DE",
+      "lat": 39.558334,
+      "lon": -75.571945,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "8555889",
+      "name": "Brandywine Shoal Light",
+      "state": "DE",
+      "lat": 38.986668,
+      "lon": -75.113335,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "8557380",
+      "name": "Lewes",
+      "state": "DE",
+      "lat": 38.782833,
+      "lon": -75.11928,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "8570283",
+      "name": "Ocean City Inlet",
+      "state": "MD",
+      "lat": 38.32833,
+      "lon": -75.09167,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "8571421",
+      "name": "Bishops Head",
+      "state": "MD",
+      "lat": 38.22,
+      "lon": -76.0383,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "8571892",
+      "name": "Cambridge",
+      "state": "MD",
+      "lat": 38.5725,
+      "lon": -76.06167,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "8573364",
+      "name": "Tolchester Beach",
+      "state": "MD",
+      "lat": 39.213444,
+      "lon": -76.24455,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "8573927",
+      "name": "Chesapeake City",
+      "state": "MD",
+      "lat": 39.52667,
+      "lon": -75.81,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "8574680",
+      "name": "Baltimore",
+      "state": "MD",
+      "lat": 39.266693,
+      "lon": -76.57831,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "8575512",
+      "name": "Annapolis",
+      "state": "MD",
+      "lat": 38.983883,
+      "lon": -76.480034,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "8577330",
+      "name": "Solomons Island",
+      "state": "MD",
+      "lat": 38.3167,
+      "lon": -76.4517,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "8594900",
+      "name": "Washington",
+      "state": "DC",
+      "lat": 38.873333,
+      "lon": -77.02167,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "8631044",
+      "name": "Wachapreague",
+      "state": "VA",
+      "lat": 37.607777,
+      "lon": -75.68584,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "8632200",
+      "name": "Kiptopeke",
+      "state": "VA",
+      "lat": 37.1652,
+      "lon": -75.9884,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "8635027",
+      "name": "Dahlgren",
+      "state": "VA",
+      "lat": 38.31975,
+      "lon": -77.0366,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "8635750",
+      "name": "Lewisetta",
+      "state": "VA",
+      "lat": 37.9961,
+      "lon": -76.4644,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "8636580",
+      "name": "Windmill Point",
+      "state": "VA",
+      "lat": 37.6155,
+      "lon": -76.28978,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "8637689",
+      "name": "Yorktown USCG Training Center",
+      "state": "VA",
+      "lat": 37.2265,
+      "lon": -76.478806,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "8638610",
+      "name": "Sewells Point",
+      "state": "VA",
+      "lat": 36.94278,
+      "lon": -76.32861,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "8638901",
+      "name": "CBBT, Chesapeake Channel",
+      "state": "VA",
+      "lat": 37.0329,
+      "lon": -76.0833,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "8639348",
+      "name": "Money Point",
+      "state": "VA",
+      "lat": 36.778194,
+      "lon": -76.301865,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "8651370",
+      "name": "Duck",
+      "state": "NC",
+      "lat": 36.1833,
+      "lon": -75.7467,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "8652587",
+      "name": "Oregon Inlet Marina",
+      "state": "NC",
+      "lat": 35.795696,
+      "lon": -75.548195,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "8654467",
+      "name": "USCG Station Hatteras",
+      "state": "NC",
+      "lat": 35.2086,
+      "lon": -75.7042,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "8656483",
+      "name": "Beaufort, Duke Marine Lab",
+      "state": "NC",
+      "lat": 34.71733,
+      "lon": -76.67066,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "8658120",
+      "name": "Wilmington",
+      "state": "NC",
+      "lat": 34.2267,
+      "lon": -77.9533,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "8658163",
+      "name": "Wrightsville Beach",
+      "state": "NC",
+      "lat": 34.213306,
+      "lon": -77.7867,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "8661070",
+      "name": "Springmaid Pier",
+      "state": "SC",
+      "lat": 33.655,
+      "lon": -78.9183,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "8665530",
+      "name": "Charleston",
+      "state": "SC",
+      "lat": 32.780834,
+      "lon": -79.923615,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "8670870",
+      "name": "Fort Pulaski",
+      "state": "GA",
+      "lat": 32.034695,
+      "lon": -80.90303,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "8679598",
+      "name": "Kings Bay MSF Pier",
+      "state": "GA",
+      "lat": 30.7781,
+      "lon": -81.4914,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "8720030",
+      "name": "Fernandina Beach",
+      "state": "FL",
+      "lat": 30.671356,
+      "lon": -81.46584,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "8720218",
+      "name": "Mayport (Bar Pilots Dock)",
+      "state": "FL",
+      "lat": 30.398167,
+      "lon": -81.42789,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "8720219",
+      "name": "Dames Point",
+      "state": "FL",
+      "lat": 30.3867,
+      "lon": -81.5583,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "8720226",
+      "name": "Southbank Riverwalk, St Johns River",
+      "state": "FL",
+      "lat": 30.32,
+      "lon": -81.6583,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "8720357",
+      "name": "I-295 Buckman Bridge",
+      "state": "FL",
+      "lat": 30.192417,
+      "lon": -81.68889,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "8721604",
+      "name": "Trident Pier, Port Canaveral",
+      "state": "FL",
+      "lat": 28.4158,
+      "lon": -80.5931,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "8722670",
+      "name": "Lake Worth Pier, Atlantic Ocean",
+      "state": "FL",
+      "lat": 26.612778,
+      "lon": -80.034164,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "8722956",
+      "name": "South Port Everglades",
+      "state": "FL",
+      "lat": 26.081667,
+      "lon": -80.11667,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "8723214",
+      "name": "Virginia Key",
+      "state": "FL",
+      "lat": 25.7314,
+      "lon": -80.1618,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "8723970",
+      "name": "Vaca Key, Florida Bay",
+      "state": "FL",
+      "lat": 24.711,
+      "lon": -81.1065,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "8724580",
+      "name": "Key West",
+      "state": "FL",
+      "lat": 24.5557,
+      "lon": -81.8079,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "8725114",
+      "name": "Naples Bay, North",
+      "state": "FL",
+      "lat": 26.1367,
+      "lon": -81.7883,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "8725520",
+      "name": "Fort Myers",
+      "state": "FL",
+      "lat": 26.647778,
+      "lon": -81.87111,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "8726384",
+      "name": "Port Manatee",
+      "state": "FL",
+      "lat": 27.6387,
+      "lon": -82.5621,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "8726520",
+      "name": "St. Petersburg",
+      "state": "FL",
+      "lat": 27.7606,
+      "lon": -82.6269,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "8726607",
+      "name": "Old Port Tampa",
+      "state": "FL",
+      "lat": 27.8578,
+      "lon": -82.5528,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "8726674",
+      "name": "East Bay",
+      "state": "FL",
+      "lat": 27.9231,
+      "lon": -82.4214,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "8726724",
+      "name": "Clearwater Beach",
+      "state": "FL",
+      "lat": 27.9783,
+      "lon": -82.8317,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "8727520",
+      "name": "Cedar Key",
+      "state": "FL",
+      "lat": 29.135,
+      "lon": -83.0317,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "8728690",
+      "name": "Apalachicola",
+      "state": "FL",
+      "lat": 29.724445,
+      "lon": -84.98055,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "8729108",
+      "name": "Panama City",
+      "state": "FL",
+      "lat": 30.149723,
+      "lon": -85.664444,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "8729210",
+      "name": "Panama City Beach",
+      "state": "FL",
+      "lat": 30.21375,
+      "lon": -85.878586,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "8729840",
+      "name": "Pensacola",
+      "state": "FL",
+      "lat": 30.4044,
+      "lon": -87.2112,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "8735180",
+      "name": "Dauphin Island",
+      "state": "AL",
+      "lat": 30.25,
+      "lon": -88.075,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "8735391",
+      "name": "Dog River Bridge",
+      "state": "AL",
+      "lat": 30.5652,
+      "lon": -88.088,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "8735523",
+      "name": "East Fowl River Bridge",
+      "state": "AL",
+      "lat": 30.4437,
+      "lon": -88.1139,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "8736897",
+      "name": "Coast Guard Sector Mobile",
+      "state": "AL",
+      "lat": 30.6495,
+      "lon": -88.05811,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "8737048",
+      "name": "Mobile State Docks",
+      "state": "AL",
+      "lat": 30.70461,
+      "lon": -88.03961,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "8737138",
+      "name": "Chickasaw Creek",
+      "state": "AL",
+      "lat": 30.7819,
+      "lon": -88.0736,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "8738043",
+      "name": "West Fowl River Bridge",
+      "state": "AL",
+      "lat": 30.3766,
+      "lon": -88.1586,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "8739803",
+      "name": "Bayou La Batre Bridge",
+      "state": "AL",
+      "lat": 30.4057,
+      "lon": -88.2477,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "8741533",
+      "name": "Pascagoula NOAA Lab",
+      "state": "MS",
+      "lat": 30.367777,
+      "lon": -88.56306,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "8747437",
+      "name": "Bay Waveland Yacht Club",
+      "state": "MS",
+      "lat": 30.326342,
+      "lon": -89.3258,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "8760721",
+      "name": "Pilottown",
+      "state": "LA",
+      "lat": 29.179306,
+      "lon": -89.258835,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "8760922",
+      "name": "Pilots Station East, S.W. Pass",
+      "state": "LA",
+      "lat": 28.9322,
+      "lon": -89.4075,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "8761305",
+      "name": "Shell Beach",
+      "state": "LA",
+      "lat": 29.86811,
+      "lon": -89.67325,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "8761724",
+      "name": "Grand Isle",
+      "state": "LA",
+      "lat": 29.2633,
+      "lon": -89.9567,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "8761927",
+      "name": "New Canal Station",
+      "state": "LA",
+      "lat": 30.027222,
+      "lon": -90.113335,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "8761955",
+      "name": "Carrollton",
+      "state": "LA",
+      "lat": 29.932888,
+      "lon": -90.135475,
+      "tidal": false,
+      "great_lakes": false
+    },
+    {
+      "id": "8762075",
+      "name": "Port Fourchon, Belle Pass",
+      "state": "LA",
+      "lat": 29.1142,
+      "lon": -90.1993,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "8762482",
+      "name": "West Bank 1, Bayou Gauche",
+      "state": "LA",
+      "lat": 29.78861,
+      "lon": -90.42028,
+      "tidal": false,
+      "great_lakes": false
+    },
+    {
+      "id": "8764044",
+      "name": "Berwick, Atchafalaya River",
+      "state": "LA",
+      "lat": 29.6675,
+      "lon": -91.23761,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "8764227",
+      "name": "LAWMA, Amerada Pass",
+      "state": "LA",
+      "lat": 29.4496,
+      "lon": -91.3381,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "8764314",
+      "name": "Eugene Island, North of, Atchafalaya Bay",
+      "state": "LA",
+      "lat": 29.3675,
+      "lon": -91.3839,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "8766072",
+      "name": "Freshwater Canal Locks",
+      "state": "LA",
+      "lat": 29.551695,
+      "lon": -92.30519,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "8767816",
+      "name": "Lake Charles",
+      "state": "LA",
+      "lat": 30.223612,
+      "lon": -93.221664,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "8767961",
+      "name": "Bulk Terminal",
+      "state": "LA",
+      "lat": 30.1903,
+      "lon": -93.3007,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "8768094",
+      "name": "Calcasieu Pass",
+      "state": "LA",
+      "lat": 29.768167,
+      "lon": -93.34289,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "8770475",
+      "name": "Port Arthur",
+      "state": "TX",
+      "lat": 29.8667,
+      "lon": -93.93,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "8770520",
+      "name": "Rainbow Bridge",
+      "state": "TX",
+      "lat": 29.98,
+      "lon": -93.8817,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "8770613",
+      "name": "Morgans Point, Barbours Cut",
+      "state": "TX",
+      "lat": 29.681667,
+      "lon": -94.985,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "8770777",
+      "name": "Manchester",
+      "state": "TX",
+      "lat": 29.7263,
+      "lon": -95.2658,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "8770808",
+      "name": "High Island",
+      "state": "TX",
+      "lat": 29.5947,
+      "lon": -94.3903,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "8770822",
+      "name": "Texas Point, Sabine Pass",
+      "state": "TX",
+      "lat": 29.6893,
+      "lon": -93.8418,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "8770971",
+      "name": "Rollover Pass",
+      "state": "TX",
+      "lat": 29.515,
+      "lon": -94.5133,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "8771013",
+      "name": "Eagle Point, Galveston Bay",
+      "state": "TX",
+      "lat": 29.481306,
+      "lon": -94.91725,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "8771341",
+      "name": "Galveston Bay Entrance, North Jetty",
+      "state": "TX",
+      "lat": 29.357462,
+      "lon": -94.724724,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "8771367",
+      "name": "Sabine Offshore Light",
+      "state": "TX",
+      "lat": 29.469,
+      "lon": -93.72,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "8771450",
+      "name": "Galveston Pier 21",
+      "state": "TX",
+      "lat": 29.31,
+      "lon": -94.7933,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "8771486",
+      "name": "Galveston Railroad Bridge",
+      "state": "TX",
+      "lat": 29.3026,
+      "lon": -94.8971,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "8771972",
+      "name": "San Luis Pass",
+      "state": "TX",
+      "lat": 29.095,
+      "lon": -95.1133,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "8772471",
+      "name": "Freeport Harbor",
+      "state": "TX",
+      "lat": 28.9357,
+      "lon": -95.2942,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "8772985",
+      "name": "Sargent",
+      "state": "TX",
+      "lat": 28.771639,
+      "lon": -95.61684,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "8773037",
+      "name": "Seadrift",
+      "state": "TX",
+      "lat": 28.4069,
+      "lon": -96.7124,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "8773146",
+      "name": "Matagorda City",
+      "state": "TX",
+      "lat": 28.71,
+      "lon": -95.9139,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "8773259",
+      "name": "Port Lavaca",
+      "state": "TX",
+      "lat": 28.6406,
+      "lon": -96.6098,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "8773701",
+      "name": "Port O'Connor",
+      "state": "TX",
+      "lat": 28.4517,
+      "lon": -96.3883,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "8773767",
+      "name": "Matagorda Bay Entrance Channel",
+      "state": "TX",
+      "lat": 28.4269,
+      "lon": -96.3301,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "8774230",
+      "name": "Aransas Wildlife Refuge",
+      "state": "TX",
+      "lat": 28.2283,
+      "lon": -96.795,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "8774513",
+      "name": "Copano Bay",
+      "state": "TX",
+      "lat": 28.118305,
+      "lon": -97.0217,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "8774770",
+      "name": "Rockport",
+      "state": "TX",
+      "lat": 28.021667,
+      "lon": -97.04667,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "8775132",
+      "name": "La Quinta Channel North",
+      "state": "TX",
+      "lat": 27.8804,
+      "lon": -97.2735,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "8775222",
+      "name": "Viola Turning Basin",
+      "state": "TX",
+      "lat": 27.8461,
+      "lon": -97.5207,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "8775237",
+      "name": "Port Aransas",
+      "state": "TX",
+      "lat": 27.8397,
+      "lon": -97.0725,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "8775241",
+      "name": "Aransas, Aransas Pass",
+      "state": "TX",
+      "lat": 27.8366,
+      "lon": -97.0391,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "8775283",
+      "name": "Enbridge, Ingleside",
+      "state": "TX",
+      "lat": 27.818611,
+      "lon": -97.20895,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "8775296",
+      "name": "USS Lexington, Corpus Christi Bay",
+      "state": "TX",
+      "lat": 27.8149,
+      "lon": -97.3892,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "8775792",
+      "name": "Packery Channel",
+      "state": "TX",
+      "lat": 27.6333,
+      "lon": -97.2367,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "8776139",
+      "name": "S. Bird Island",
+      "state": "TX",
+      "lat": 27.484362,
+      "lon": -97.31811,
+      "tidal": false,
+      "great_lakes": false
+    },
+    {
+      "id": "8776604",
+      "name": "Baffin Bay",
+      "state": "TX",
+      "lat": 27.297,
+      "lon": -97.40517,
+      "tidal": false,
+      "great_lakes": false
+    },
+    {
+      "id": "8777812",
+      "name": "Rincon Del San Jose",
+      "state": "TX",
+      "lat": 26.801195,
+      "lon": -97.47056,
+      "tidal": false,
+      "great_lakes": false
+    },
+    {
+      "id": "8778490",
+      "name": "Port Mansfield",
+      "state": "TX",
+      "lat": 26.557638,
+      "lon": -97.42572,
+      "tidal": false,
+      "great_lakes": false
+    },
+    {
+      "id": "8779280",
+      "name": "Realitos Peninsula",
+      "state": "TX",
+      "lat": 26.2624,
+      "lon": -97.2853,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "8779748",
+      "name": "South Padre Island CG Station",
+      "state": "TX",
+      "lat": 26.0731,
+      "lon": -97.1675,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "8779749",
+      "name": "SPI Brazos Santiago",
+      "state": "TX",
+      "lat": 26.0675,
+      "lon": -97.1548,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "8779770",
+      "name": "Port Isabel",
+      "state": "TX",
+      "lat": 26.061167,
+      "lon": -97.21553,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "9014070",
+      "name": "Algonac",
+      "state": "MI",
+      "lat": 42.621113,
+      "lon": -82.526665,
+      "tidal": false,
+      "great_lakes": true
+    },
+    {
+      "id": "9014080",
+      "name": "St. Clair State Police",
+      "state": "MI",
+      "lat": 42.81222,
+      "lon": -82.48556,
+      "tidal": false,
+      "great_lakes": true
+    },
+    {
+      "id": "9014087",
+      "name": "Dry Dock",
+      "state": "MI",
+      "lat": 42.94528,
+      "lon": -82.44334,
+      "tidal": false,
+      "great_lakes": true
+    },
+    {
+      "id": "9014090",
+      "name": "Mouth of the Black River",
+      "state": "MI",
+      "lat": 42.9738,
+      "lon": -82.4204,
+      "tidal": false,
+      "great_lakes": true
+    },
+    {
+      "id": "9014098",
+      "name": "Fort Gratiot",
+      "state": "MI",
+      "lat": 43.0069,
+      "lon": -82.4225,
+      "tidal": false,
+      "great_lakes": true
+    },
+    {
+      "id": "9034052",
+      "name": "St Clair Shores",
+      "state": "MI",
+      "lat": 42.47322,
+      "lon": -82.87925,
+      "tidal": false,
+      "great_lakes": true
+    },
+    {
+      "id": "9044020",
+      "name": "Gibraltar",
+      "state": "MI",
+      "lat": 42.090862,
+      "lon": -83.186,
+      "tidal": false,
+      "great_lakes": true
+    },
+    {
+      "id": "9044030",
+      "name": "Wyandotte",
+      "state": "MI",
+      "lat": 42.202305,
+      "lon": -83.1475,
+      "tidal": false,
+      "great_lakes": true
+    },
+    {
+      "id": "9044036",
+      "name": "Fort Wayne",
+      "state": "MI",
+      "lat": 42.298912,
+      "lon": -83.092636,
+      "tidal": false,
+      "great_lakes": true
+    },
+    {
+      "id": "9044049",
+      "name": "Windmill Point",
+      "state": "MI",
+      "lat": 42.357777,
+      "lon": -82.92995,
+      "tidal": false,
+      "great_lakes": true
+    },
+    {
+      "id": "9052000",
+      "name": "Cape Vincent",
+      "state": "NY",
+      "lat": 44.13028,
+      "lon": -76.33222,
+      "tidal": false,
+      "great_lakes": true
+    },
+    {
+      "id": "9052030",
+      "name": "Oswego",
+      "state": "NY",
+      "lat": 43.46417,
+      "lon": -76.51183,
+      "tidal": false,
+      "great_lakes": true
+    },
+    {
+      "id": "9052058",
+      "name": "Rochester",
+      "state": "NY",
+      "lat": 43.26903,
+      "lon": -77.62575,
+      "tidal": false,
+      "great_lakes": true
+    },
+    {
+      "id": "9052076",
+      "name": "Olcott",
+      "state": "NY",
+      "lat": 43.33839,
+      "lon": -78.72733,
+      "tidal": false,
+      "great_lakes": true
+    },
+    {
+      "id": "9063007",
+      "name": "Ashland Ave",
+      "state": "NY",
+      "lat": 43.09992,
+      "lon": -79.05991,
+      "tidal": false,
+      "great_lakes": true
+    },
+    {
+      "id": "9063009",
+      "name": "American Falls",
+      "state": "NY",
+      "lat": 43.08106,
+      "lon": -79.06136,
+      "tidal": false,
+      "great_lakes": true
+    },
+    {
+      "id": "9063012",
+      "name": "Niagara Intake",
+      "state": "NY",
+      "lat": 43.07689,
+      "lon": -79.01403,
+      "tidal": false,
+      "great_lakes": true
+    },
+    {
+      "id": "9063020",
+      "name": "Buffalo",
+      "state": "NY",
+      "lat": 42.877445,
+      "lon": -78.89047,
+      "tidal": false,
+      "great_lakes": true
+    },
+    {
+      "id": "9063028",
+      "name": "Sturgeon Point",
+      "state": "NY",
+      "lat": 42.691307,
+      "lon": -79.04733,
+      "tidal": false,
+      "great_lakes": true
+    },
+    {
+      "id": "9063038",
+      "name": "Erie, Lake Erie",
+      "state": "PA",
+      "lat": 42.15389,
+      "lon": -80.075836,
+      "tidal": false,
+      "great_lakes": true
+    },
+    {
+      "id": "9063053",
+      "name": "Fairport",
+      "state": "OH",
+      "lat": 41.75975,
+      "lon": -81.28106,
+      "tidal": false,
+      "great_lakes": true
+    },
+    {
+      "id": "9063063",
+      "name": "Cleveland",
+      "state": "OH",
+      "lat": 41.54086,
+      "lon": -81.635475,
+      "tidal": false,
+      "great_lakes": true
+    },
+    {
+      "id": "9063079",
+      "name": "Marblehead",
+      "state": "OH",
+      "lat": 41.54364,
+      "lon": -82.73139,
+      "tidal": false,
+      "great_lakes": true
+    },
+    {
+      "id": "9063085",
+      "name": "Toledo",
+      "state": "OH",
+      "lat": 41.693554,
+      "lon": -83.472275,
+      "tidal": false,
+      "great_lakes": true
+    },
+    {
+      "id": "9063090",
+      "name": "Fermi Power Plant",
+      "state": "MI",
+      "lat": 41.96,
+      "lon": -83.25667,
+      "tidal": false,
+      "great_lakes": true
+    },
+    {
+      "id": "9075002",
+      "name": "Lakeport",
+      "state": "MI",
+      "lat": 43.141693,
+      "lon": -82.49331,
+      "tidal": false,
+      "great_lakes": true
+    },
+    {
+      "id": "9075014",
+      "name": "Harbor Beach",
+      "state": "MI",
+      "lat": 43.84639,
+      "lon": -82.64306,
+      "tidal": false,
+      "great_lakes": true
+    },
+    {
+      "id": "9075035",
+      "name": "Essexville",
+      "state": "MI",
+      "lat": 43.6404,
+      "lon": -83.8468,
+      "tidal": false,
+      "great_lakes": true
+    },
+    {
+      "id": "9075065",
+      "name": "Alpena",
+      "state": "MI",
+      "lat": 45.063,
+      "lon": -83.4286,
+      "tidal": false,
+      "great_lakes": true
+    },
+    {
+      "id": "9075080",
+      "name": "Mackinaw City",
+      "state": "MI",
+      "lat": 45.77722,
+      "lon": -84.72111,
+      "tidal": false,
+      "great_lakes": true
+    },
+    {
+      "id": "9075099",
+      "name": "De Tour Village",
+      "state": "MI",
+      "lat": 45.9925,
+      "lon": -83.8982,
+      "tidal": false,
+      "great_lakes": true
+    },
+    {
+      "id": "9076024",
+      "name": "Rock Cut",
+      "state": "MI",
+      "lat": 46.264805,
+      "lon": -84.19119,
+      "tidal": false,
+      "great_lakes": true
+    },
+    {
+      "id": "9076027",
+      "name": "West Neebish Island",
+      "state": "MI",
+      "lat": 46.28469,
+      "lon": -84.20981,
+      "tidal": false,
+      "great_lakes": true
+    },
+    {
+      "id": "9076033",
+      "name": "Little Rapids",
+      "state": "MI",
+      "lat": 46.485832,
+      "lon": -84.30167,
+      "tidal": false,
+      "great_lakes": true
+    },
+    {
+      "id": "9076060",
+      "name": "U.S. Slip",
+      "state": "MI",
+      "lat": 46.500805,
+      "lon": -84.34036,
+      "tidal": false,
+      "great_lakes": true
+    },
+    {
+      "id": "9076070",
+      "name": "S.W. Pier, St. Marys River",
+      "state": "MI",
+      "lat": 46.50111,
+      "lon": -84.37261,
+      "tidal": false,
+      "great_lakes": true
+    },
+    {
+      "id": "9087023",
+      "name": "Ludington",
+      "state": "MI",
+      "lat": 43.94736,
+      "lon": -86.4415,
+      "tidal": false,
+      "great_lakes": true
+    },
+    {
+      "id": "9087031",
+      "name": "Holland",
+      "state": "MI",
+      "lat": 42.773335,
+      "lon": -86.212776,
+      "tidal": false,
+      "great_lakes": true
+    },
+    {
+      "id": "9087044",
+      "name": "Calumet Harbor",
+      "state": "IL",
+      "lat": 41.72972,
+      "lon": -87.53833,
+      "tidal": false,
+      "great_lakes": true
+    },
+    {
+      "id": "9087057",
+      "name": "Milwaukee",
+      "state": "WI",
+      "lat": 43.001972,
+      "lon": -87.88764,
+      "tidal": false,
+      "great_lakes": true
+    },
+    {
+      "id": "9087068",
+      "name": "Kewaunee, Lake Michigan",
+      "state": "WI",
+      "lat": 44.46389,
+      "lon": -87.50103,
+      "tidal": false,
+      "great_lakes": true
+    },
+    {
+      "id": "9087072",
+      "name": "Sturgeon Bay Canal",
+      "state": "WI",
+      "lat": 44.794693,
+      "lon": -87.31392,
+      "tidal": false,
+      "great_lakes": true
+    },
+    {
+      "id": "9087077",
+      "name": "Green Bay East",
+      "state": "WI",
+      "lat": 44.539024,
+      "lon": -88.00106,
+      "tidal": false,
+      "great_lakes": true
+    },
+    {
+      "id": "9087088",
+      "name": "Menominee",
+      "state": "MI",
+      "lat": 45.09589,
+      "lon": -87.58994,
+      "tidal": false,
+      "great_lakes": true
+    },
+    {
+      "id": "9087096",
+      "name": "Port Inland",
+      "state": "MI",
+      "lat": 45.96989,
+      "lon": -85.8715,
+      "tidal": false,
+      "great_lakes": true
+    },
+    {
+      "id": "9099004",
+      "name": "Point Iroquois",
+      "state": "MI",
+      "lat": 46.484444,
+      "lon": -84.63084,
+      "tidal": false,
+      "great_lakes": true
+    },
+    {
+      "id": "9099018",
+      "name": "Marquette C.G.",
+      "state": "MI",
+      "lat": 46.545555,
+      "lon": -87.37861,
+      "tidal": false,
+      "great_lakes": true
+    },
+    {
+      "id": "9099044",
+      "name": "Ontonagon",
+      "state": "MI",
+      "lat": 46.874443,
+      "lon": -89.324165,
+      "tidal": false,
+      "great_lakes": true
+    },
+    {
+      "id": "9099064",
+      "name": "Duluth",
+      "state": "MN",
+      "lat": 46.77575,
+      "lon": -92.092026,
+      "tidal": false,
+      "great_lakes": true
+    },
+    {
+      "id": "9099090",
+      "name": "Grand Marais, Lake Superior",
+      "state": "MN",
+      "lat": 47.748554,
+      "lon": -90.34128,
+      "tidal": false,
+      "great_lakes": true
+    },
+    {
+      "id": "9410170",
+      "name": "San Diego",
+      "state": "CA",
+      "lat": 32.715557,
+      "lon": -117.17667,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "9410230",
+      "name": "La Jolla",
+      "state": "CA",
+      "lat": 32.86689,
+      "lon": -117.25714,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "9410660",
+      "name": "Los Angeles",
+      "state": "CA",
+      "lat": 33.72,
+      "lon": -118.272,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "9410840",
+      "name": "Santa Monica",
+      "state": "CA",
+      "lat": 34.0083,
+      "lon": -118.5,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "9411340",
+      "name": "Santa Barbara",
+      "state": "CA",
+      "lat": 34.40459,
+      "lon": -119.6925,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "9412110",
+      "name": "Port San Luis",
+      "state": "CA",
+      "lat": 35.168888,
+      "lon": -120.754166,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "9413450",
+      "name": "Monterey",
+      "state": "CA",
+      "lat": 36.60889,
+      "lon": -121.89139,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "9414290",
+      "name": "San Francisco",
+      "state": "CA",
+      "lat": 37.806305,
+      "lon": -122.46589,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "9414523",
+      "name": "Redwood City",
+      "state": "CA",
+      "lat": 37.506813,
+      "lon": -122.21191,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "9414750",
+      "name": "Alameda",
+      "state": "CA",
+      "lat": 37.771954,
+      "lon": -122.30026,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "9414863",
+      "name": "Richmond",
+      "state": "CA",
+      "lat": 37.9283,
+      "lon": -122.4,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "9415020",
+      "name": "Point Reyes",
+      "state": "CA",
+      "lat": 37.994167,
+      "lon": -122.97361,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "9415102",
+      "name": "Martinez-Amorco Pier",
+      "state": "CA",
+      "lat": 38.0346,
+      "lon": -122.1252,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "9415144",
+      "name": "Port Chicago",
+      "state": "CA",
+      "lat": 38.056,
+      "lon": -122.0395,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "9416131",
+      "name": "Port of West Sacramento, Washington Lake",
+      "state": "CA",
+      "lat": 38.56225,
+      "lon": -121.5463,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "9416841",
+      "name": "Arena Cove",
+      "state": "CA",
+      "lat": 38.914555,
+      "lon": -123.71108,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "9418767",
+      "name": "North Spit",
+      "state": "CA",
+      "lat": 40.766907,
+      "lon": -124.21735,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "9419750",
+      "name": "Crescent City",
+      "state": "CA",
+      "lat": 41.74561,
+      "lon": -124.18439,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "9431647",
+      "name": "Port Orford",
+      "state": "OR",
+      "lat": 42.739,
+      "lon": -124.4983,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "9432780",
+      "name": "Charleston",
+      "state": "OR",
+      "lat": 43.345,
+      "lon": -124.322,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "9435380",
+      "name": "South Beach",
+      "state": "OR",
+      "lat": 44.625446,
+      "lon": -124.044945,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "9437540",
+      "name": "Garibaldi",
+      "state": "OR",
+      "lat": 45.55453,
+      "lon": -123.918945,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "9439040",
+      "name": "Astoria",
+      "state": "OR",
+      "lat": 46.207306,
+      "lon": -123.7683,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "9439099",
+      "name": "Wauna",
+      "state": "OR",
+      "lat": 46.16,
+      "lon": -123.405,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "9439201",
+      "name": "St Helens",
+      "state": "OR",
+      "lat": 45.865,
+      "lon": -122.797,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "9440083",
+      "name": "Vancouver",
+      "state": "WA",
+      "lat": 45.631172,
+      "lon": -122.69577,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "9440357",
+      "name": "TEMCO Kalama Terminal",
+      "state": "WA",
+      "lat": 45.9867,
+      "lon": -122.8367,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "9440422",
+      "name": "Longview",
+      "state": "WA",
+      "lat": 46.1061,
+      "lon": -122.9542,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "9440569",
+      "name": "Skamokawa",
+      "state": "WA",
+      "lat": 46.270306,
+      "lon": -123.4565,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "9440581",
+      "name": "Cape Disappointment",
+      "state": "WA",
+      "lat": 46.28103,
+      "lon": -124.04628,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "9440910",
+      "name": "Toke Point",
+      "state": "WA",
+      "lat": 46.7075,
+      "lon": -123.96694,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "9441102",
+      "name": "Westport",
+      "state": "WA",
+      "lat": 46.90431,
+      "lon": -124.10508,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "9442396",
+      "name": "La Push, Quillayute River",
+      "state": "WA",
+      "lat": 47.912838,
+      "lon": -124.63574,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "9443090",
+      "name": "Neah Bay",
+      "state": "WA",
+      "lat": 48.370724,
+      "lon": -124.601585,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "9444090",
+      "name": "Port Angeles",
+      "state": "WA",
+      "lat": 48.125,
+      "lon": -123.44,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "9444900",
+      "name": "Port Townsend",
+      "state": "WA",
+      "lat": 48.11122,
+      "lon": -122.759674,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "9445958",
+      "name": "Bremerton",
+      "state": "WA",
+      "lat": 47.5617,
+      "lon": -122.623,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "9446484",
+      "name": "Tacoma",
+      "state": "WA",
+      "lat": 47.2667,
+      "lon": -122.4133,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "9447130",
+      "name": "Seattle",
+      "state": "WA",
+      "lat": 47.60264,
+      "lon": -122.3393,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "9449424",
+      "name": "Cherry Point",
+      "state": "WA",
+      "lat": 48.862717,
+      "lon": -122.75858,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "9449880",
+      "name": "Friday Harbor",
+      "state": "WA",
+      "lat": 48.545277,
+      "lon": -123.0125,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "9450460",
+      "name": "Ketchikan",
+      "state": "AK",
+      "lat": 55.331944,
+      "lon": -131.62611,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "9451054",
+      "name": "Port Alexander",
+      "state": "AK",
+      "lat": 56.2467,
+      "lon": -134.647,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "9451600",
+      "name": "Sitka",
+      "state": "AK",
+      "lat": 57.051693,
+      "lon": -135.342,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "9452210",
+      "name": "Juneau",
+      "state": "AK",
+      "lat": 58.2988,
+      "lon": -134.4106,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "9452400",
+      "name": "Skagway, Taiya Inlet",
+      "state": "AK",
+      "lat": 59.4508,
+      "lon": -135.328,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "9452634",
+      "name": "Elfin Cove",
+      "state": "AK",
+      "lat": 58.19472,
+      "lon": -136.34694,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "9453220",
+      "name": "Yakutat, Yakutat Bay",
+      "state": "AK",
+      "lat": 59.5485,
+      "lon": -139.7334,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "9454050",
+      "name": "Cordova",
+      "state": "AK",
+      "lat": 60.5583,
+      "lon": -145.753,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "9454240",
+      "name": "Valdez",
+      "state": "AK",
+      "lat": 61.125,
+      "lon": -146.362,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "9455090",
+      "name": "Seward",
+      "state": "AK",
+      "lat": 60.1193,
+      "lon": -149.42812,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "9455500",
+      "name": "Seldovia",
+      "state": "AK",
+      "lat": 59.4405,
+      "lon": -151.7199,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "9455760",
+      "name": "Nikiski",
+      "state": "AK",
+      "lat": 60.6833,
+      "lon": -151.398,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "9455920",
+      "name": "Anchorage",
+      "state": "AK",
+      "lat": 61.2375,
+      "lon": -149.8904,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "9457292",
+      "name": "Kodiak Island",
+      "state": "AK",
+      "lat": 57.7317,
+      "lon": -152.512,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "9457804",
+      "name": "Alitak",
+      "state": "AK",
+      "lat": 56.89739,
+      "lon": -154.248,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "9459450",
+      "name": "Sand Point",
+      "state": "AK",
+      "lat": 55.331722,
+      "lon": -160.50433,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "9459881",
+      "name": "King Cove",
+      "state": "AK",
+      "lat": 55.05989,
+      "lon": -162.32611,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "9461380",
+      "name": "Adak Island",
+      "state": "AK",
+      "lat": 51.860638,
+      "lon": -176.63759,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "9461710",
+      "name": "Atka",
+      "state": "AK",
+      "lat": 52.231945,
+      "lon": -174.1725,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "9462450",
+      "name": "Nikolski",
+      "state": "AK",
+      "lat": 52.94061,
+      "lon": -168.8713,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "9462620",
+      "name": "Unalaska",
+      "state": "AK",
+      "lat": 53.879196,
+      "lon": -166.5403,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "9463502",
+      "name": "Port Moller",
+      "state": "AK",
+      "lat": 55.985832,
+      "lon": -160.57361,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "9464212",
+      "name": "Village Cove, St Paul Island",
+      "state": "AK",
+      "lat": 57.1253,
+      "lon": -170.2852,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "9468333",
+      "name": "Unalakleet",
+      "state": "AK",
+      "lat": 63.875,
+      "lon": -160.788,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "9468756",
+      "name": "Nome, Norton Sound",
+      "state": "AK",
+      "lat": 64.49461,
+      "lon": -165.43964,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "9491094",
+      "name": "Red Dog Dock",
+      "state": "AK",
+      "lat": 67.575806,
+      "lon": -164.06439,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "9497645",
+      "name": "Prudhoe Bay",
+      "state": "AK",
+      "lat": 70.41139,
+      "lon": -148.53166,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "9751364",
+      "name": "Christiansted Harbor, St Croix",
+      "state": "VI",
+      "lat": 17.747694,
+      "lon": -64.69839,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "9751381",
+      "name": "Lameshur Bay, St John",
+      "state": "VI",
+      "lat": 18.31825,
+      "lon": -64.72422,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "9751401",
+      "name": "Limetree Bay",
+      "state": "VI",
+      "lat": 17.6947,
+      "lon": -64.7538,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "9751639",
+      "name": "Charlotte Amalie",
+      "state": "VI",
+      "lat": 18.330584,
+      "lon": -64.925804,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "9752235",
+      "name": "Culebra",
+      "state": "PR",
+      "lat": 18.300861,
+      "lon": -65.302475,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "9752621",
+      "name": "Isabel Segunda, Vieques Island",
+      "state": "PR",
+      "lat": 18.152527,
+      "lon": -65.4438,
+      "tidal": false,
+      "great_lakes": false
+    },
+    {
+      "id": "9752695",
+      "name": "Esperanza, Vieques Island",
+      "state": "PR",
+      "lat": 18.09386,
+      "lon": -65.47136,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "9753216",
+      "name": "Fajardo",
+      "state": "PR",
+      "lat": 18.335278,
+      "lon": -65.63111,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "9754229",
+      "name": "Yabucoa Harbor",
+      "state": "PR",
+      "lat": 18.055084,
+      "lon": -65.833,
+      "tidal": false,
+      "great_lakes": false
+    },
+    {
+      "id": "9755371",
+      "name": "San Juan, La Puntilla, San Juan Bay",
+      "state": "PR",
+      "lat": 18.458944,
+      "lon": -66.11642,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "9755968",
+      "name": "Salinas, Bahia de Jobos",
+      "state": "PR",
+      "lat": 17.949083,
+      "lon": -66.225945,
+      "tidal": false,
+      "great_lakes": false
+    },
+    {
+      "id": "9757811",
+      "name": "Arecibo",
+      "state": "PR",
+      "lat": 18.480528,
+      "lon": -66.70236,
+      "tidal": false,
+      "great_lakes": false
+    },
+    {
+      "id": "9758066",
+      "name": "Guayanilla, Bahia de Guayanilla",
+      "state": "PR",
+      "lat": 18.005861,
+      "lon": -66.76661,
+      "tidal": false,
+      "great_lakes": false
+    },
+    {
+      "id": "9759110",
+      "name": "Magueyes Island",
+      "state": "PR",
+      "lat": 17.970112,
+      "lon": -67.04639,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "9759394",
+      "name": "Mayaguez",
+      "state": "PR",
+      "lat": 18.218834,
+      "lon": -67.162445,
+      "tidal": true,
+      "great_lakes": false
+    },
+    {
+      "id": "9759413",
+      "name": "Aguadilla, Crashboat Beach",
+      "state": "PR",
+      "lat": 18.456638,
+      "lon": -67.16458,
+      "tidal": false,
+      "great_lakes": false
+    },
+    {
+      "id": "9759938",
+      "name": "Mona Island",
+      "state": "PR",
+      "lat": 18.089289,
+      "lon": -67.93821,
+      "tidal": true,
+      "great_lakes": false
+    }
+  ]
+}

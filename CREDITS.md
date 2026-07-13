@@ -19,9 +19,9 @@ from.
 
 | Project or Service | Role |
 |---|---|
-| Leaflet | Interactive map framework |
-| OpenStreetMap contributors | Base map data attribution |
-| CARTO | Dark map tile styling used by the dashboard |
+| Leaflet 1.9.4 (BSD-2-Clause) | Vendored interactive map framework |
+| Natural Earth 1:110m v5.1.1 (public domain) | Bundled offline world boundaries |
+| OpenStreetMap contributors | Optional, user-enabled detailed map tiles |
 | YouTube | Live channel embeds and external live-stream fallback links |
 
 ## Public Live Data Sources
@@ -29,42 +29,41 @@ from.
 | Source | Used For |
 |---|---|
 | USGS Earthquake Hazards Program | Earthquake GeoJSON feed |
-| USGS Volcano Hazards / Smithsonian GVP | Volcano status and weekly volcano reports |
+| Smithsonian Global Volcanism Program | Weekly volcano reports |
 | National Weather Service | Active US weather alerts |
 | NOAA National Hurricane Center | Tropical cyclone feed |
 | NOAA Space Weather Prediction Center | Planetary K-index / space weather |
 | tsunami.gov | Pacific and National Tsunami Warning Center Atom feeds |
+| NOAA Aviation Weather Center | Worldwide SIGMET aviation advisories |
+| NOAA National Data Buoy Center | Contextual nearby marine observations |
+| NOAA Tides and Currents / CO-OPS | Contextual water-level observations and station metadata |
+| NASA/JPL Center for Near-Earth Object Studies | Fireball peak-brightness observations |
 | NASA EONET | Open natural event feed |
 | NASA FIRMS | Optional MODIS/VIIRS fire detections |
 | GDACS | Global disaster alert RSS |
+| FEMA OpenFEMA | Official disaster-declaration administrative context |
 | ReliefWeb | Humanitarian update RSS |
-| GDELT Project | Conflict and world event signals |
 | UN News | Peace and security RSS |
 | DW | World news RSS |
 | France 24 | News RSS |
 | BBC | World news RSS |
 | NPR | World news RSS |
 | Al Jazeera | News RSS |
-| CISA | Cybersecurity advisory RSS |
+| U.S. Department of Defense | Official news RSS |
 | Defense News | Defense RSS |
-| Stars and Stripes | Defense/news RSS when available |
 | War on the Rocks | Defense analysis RSS |
 | mempool.space | Bitcoin fees, mempool, blocks, difficulty |
 | CoinPaprika | Crypto market tickers |
 | Frankfurter | Foreign exchange rates |
-| Stooq | Commodities and market CSV data |
+| Yahoo Finance chart data | Disabled-by-default commodity compatibility path pending terms review |
 | GitHub Events API | Public developer activity |
 | SEC EDGAR | Current filing Atom feed |
 | Wikimedia EventStreams | Recent Wikipedia edit stream |
 | Hacker News Firebase API | Top story metadata |
-| Reddit JSON | Popular Reddit items |
+| Reddit RSS | Popular Reddit items |
 | Open Notify | ISS location |
-| ADS-B.lol | Community aircraft data |
-| AISstream | Optional ship position stream |
-| OpenSky Network | Optional authenticated aircraft data |
-| OpenWeatherMap | Optional global weather data |
-| FRED | Optional macroeconomic indicators |
-| Finnhub | Optional market news and watchlist extensions |
+| ADS-B.lol | Experimental community aircraft endpoint, off by default |
+| Open-Meteo | Disabled-by-default click-to-inspect compatibility source; free API is non-commercial only |
 
 ## Build And QA Assistance
 

@@ -1,4 +1,7 @@
-pyinstaller>=6.20
-pillow>=11.0
-pywebview>=6.2
-pythonnet>=3.0
+pyinstaller==6.21.0
+pillow==12.3.0
+pywebview==6.2.1
+pythonnet==3.1.0
+# pywebview pulls this transitively; pin it explicitly so release audits cannot
+# silently retain an older wheel with a vulnerable bundled OpenSSL.
+cryptography==49.0.0

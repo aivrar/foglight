@@ -1,0 +1,34 @@
+{
+  "schema_version": 1,
+  "platform": "Windows, Python 3.13.11, Playwright Chromium",
+  "measured_at": "2026-07-10T22:06:13Z",
+  "server": {
+    "samples": 30,
+    "startup_to_ping_ms": 18.394,
+    "process_rss_bytes": 29769728,
+    "local_http": {
+      "/": {"median_ms": 1.175, "p95_ms": 12.826, "body_bytes": 60635},
+      "/api/ping": {"median_ms": 1.117, "p95_ms": 13.59, "body_bytes": 38},
+      "/api/settings": {"median_ms": 1.105, "p95_ms": 1.768, "body_bytes": 693}
+    }
+  },
+  "browser": {
+    "samples": 5,
+    "first_shell_paint_median_ms": 235.201,
+    "map_render_median_ms": 280.199,
+    "first_incident_paint_median_ms": 304.811,
+    "used_js_heap_median_bytes": 10000000,
+    "dom_content_loaded_median_ms": 118.1
+  },
+  "artifact": {"path": "dist/Foglight.exe", "bytes": 17777056},
+  "source_bytes": {"foglight_server.py": 69239, "web/app.js": 97611, "index.html": 60635},
+  "source_availability": {
+    "fixture_contracts": 25,
+    "required_live_gate": false,
+    "repeatable_opt_in_command": "python scripts/check_live_sources.py --confirm-live"
+  },
+  "commands": [
+    "python scripts/measure_baseline.py --samples 30",
+    "npm run measure:browser"
+  ]
+}

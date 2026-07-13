@@ -1,0 +1,12 @@
+{
+  "version": "correlation-v1",
+  "earthquake": {"hours": 0.25, "kilometers": 150},
+  "tropical_cyclone": {"hours": 168},
+  "tsunami_relation": {"hours": 6, "kilometers": 1000},
+  "named_hazard": {"hours": 48, "kilometers": 250},
+  "media": {"hours": 36, "similarity": 0.72},
+  "coverage_similarity": 0.5,
+  "aviation_volcanic_ash_relation": {"hours": 48, "kilometers": 750},
+  "aviation_severe_weather_relation": {"hours": 6, "kilometers": 400},
+  "declaration_relation": {"padding_hours": 72, "open_end_days": 30}
+}

@@ -6,7 +6,10 @@
 <title>Foglight</title>
 
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='5' fill='%23050810'/><circle cx='16' cy='16' r='7' fill='none' stroke='%233a7bd5' stroke-width='2'/><circle cx='16' cy='16' r='2.5' fill='%23ff3b6e'/></svg>">
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
+<link rel="stylesheet" href="/vendor/leaflet/leaflet.css">
+<link rel="stylesheet" href="/overview.css">
+<link rel="stylesheet" href="/incident-drawer.css">
+<link rel="stylesheet" href="/watch-center.css">
 <style>
   :root {
     --bg:           #04060c;
@@ -17,7 +20,7 @@
     --border-hi:    #28324a;
     --text:         #d3dbeb;
     --text-dim:     #7e8aa3;
-    --text-dimmer:  #4a5266;
+    --text-dimmer:  #77839d;
     --accent:       #3a7bd5;
     --accent-hi:    #4f8de0;
     --good:         #3dd68c;
@@ -154,7 +157,7 @@
   }
   #theaterbar .t-btn:hover { background: var(--bg-active); color: var(--text); }
   #theaterbar .t-btn.active {
-    background: var(--accent); border-color: var(--accent-hi); color: #fff;
+    background: #306bb8; border-color: var(--accent-hi); color: #fff;
   }
   #theaterbar .t-action {
     background: rgba(255, 90, 77, 0.18); color: var(--hot);
@@ -248,10 +251,10 @@
     overflow: hidden;
   }
   #main.optional-empty {
-    grid-template-rows: 1fr 0;
+    grid-template-rows: 1fr auto;
     grid-template-areas:
-      "left  map  right"
-      "left  map  right";
+      "left  map     right"
+      "left  bottom  right";
   }
   #col-left   { grid-area: left;   display: flex; flex-direction: column; gap: 1px; background: var(--border); min-height: 0; }
   #col-right  { grid-area: right;  display: flex; flex-direction: column; gap: 1px; background: var(--border); min-height: 0; }
@@ -377,7 +380,7 @@
   .leaflet-container { background: #03060f !important;
                        font: 11px "Inter", sans-serif; }
   .leaflet-control-attribution { background: rgba(5, 7, 13, 0.78) !important;
-                                  color: #5a6680 !important; font-size: 9.5px !important; }
+                                  color: #8792aa !important; font-size: 9.5px !important; }
   .leaflet-control-attribution a { color: #7eb0ff !important; }
   .leaflet-popup-content-wrapper, .leaflet-popup-tip {
     background: var(--bg-raised) !important; color: var(--text) !important;
@@ -493,6 +496,7 @@
   /* When all optional panels are hidden, the bottom strip shows a single
      pill encouraging the user to open Settings -> Panels. */
   #optional-cta {
+    grid-area: bottom;
     display: flex; align-items: center; justify-content: center;
     background: var(--bg);
     color: var(--text-dim);
@@ -741,6 +745,23 @@
     text-transform: uppercase; letter-spacing: 0.06em;
   }
   .key-status.on { background: rgba(61, 214, 140, 0.18); color: var(--good); }
+  .provider-group + .provider-group { margin-top: 16px; }
+  .provider-group h3 {
+    margin: 0 0 6px; color: var(--text); font-size: 12px; font-weight: 600;
+  }
+  .provider-source {
+    display: grid; grid-template-columns: minmax(180px, 1fr) auto;
+    gap: 4px 14px; padding: 9px 0; border-top: 1px solid var(--border);
+  }
+  .provider-source strong { color: var(--text); font-size: 11.5px; }
+  .provider-source code { color: var(--text-dimmer); font-size: 10px; }
+  .provider-source .provider-policy {
+    grid-column: 1 / -1; color: var(--text-dim); font-size: 10.5px; line-height: 1.45;
+  }
+  .provider-source a {
+    color: var(--news); justify-self: end; min-height: 24px;
+    display: inline-flex; align-items: center;
+  }
 
   .toggle {
     position: relative; width: 36px; height: 20px;
@@ -996,16 +1017,21 @@
   }
 </style>
 </head>
-<body>
+<body class="mode-standard">
 
 <div id="topbar">
   <div id="brand"><span class="lamp"></span> Foglight</div>
+  <nav id="display-modes" aria-label="Display mode" hidden>
+    <button type="button" data-display-mode="overview">Overview</button>
+    <button type="button" data-display-mode="standard">Standard</button>
+    <button type="button" data-display-mode="command">Command</button>
+  </nav>
   <div class="top-stat" id="stat-feeds"><span class="dot"></span><span id="stat-feeds-txt">starting</span></div>
   <div class="top-stat" id="stat-wiki"><span class="dot stale"></span><span>wiki idle</span></div>
   <div class="top-clock" id="clock">--:--:-- UTC</div>
   <div id="top-actions">
-    <button class="tbtn" onclick="openSettings()" title="Panel toggles, API keys, audio">Settings</button>
-    <button class="tbtn danger" onclick="shutdownApp()" title="Stop all foglight processes and close the app">Shut down</button>
+    <button class="tbtn" id="action-settings" title="Panel toggles, API keys, audio">Settings</button>
+    <button class="tbtn danger js-shutdown" title="Stop Foglight and close the app">Shut down</button>
   </div>
 </div>
 
@@ -1034,9 +1060,9 @@
   <button class="t-btn" data-theater="mex">US&middot;Mex Border</button>
   <button class="t-btn" data-theater="kor">Korean Peninsula</button>
   <div class="spacer"></div>
-  <button class="t-action" onclick="speakBriefing()" title="Read situation report aloud">&#x1F50A; SPEAK</button>
-  <button class="t-action" onclick="generateBriefing()" title="Print-ready situation report">&#x1F4DD; BRIEF</button>
-  <button class="t-action" onclick="toggleFullscreen()" title="Fullscreen (F)">&#x26F6; FULL</button>
+  <button class="t-action" id="action-speak" title="Read situation report aloud">&#x1F50A; SPEAK</button>
+  <button class="t-action" id="action-brief" title="Print-ready situation report">&#x1F4DD; BRIEF</button>
+  <button class="t-action" id="action-fullscreen" title="Fullscreen (F)">&#x26F6; FULL</button>
 </div>
 
 <!-- Breaking-event banner (hidden until something fires it). -->
@@ -1044,6 +1070,205 @@
 
 <div class="tickerband" id="ticker-news"><div class="ticker-track" id="ticker-news-track"></div></div>
 <div class="tickerband" id="ticker-crypto"><div class="ticker-track" id="ticker-crypto-track"></div></div>
+
+<main id="overview-surface" aria-labelledby="overview-title" data-view-state="loading" data-density="overview">
+  <header class="overview-header">
+    <div>
+      <p class="overview-eyebrow">Current picture</p>
+      <h1 id="overview-title" tabindex="-1">What matters now</h1>
+      <p id="overview-state-message">Reading the local incident history.</p>
+    </div>
+    <div class="overview-status-cluster">
+      <span id="overview-health" data-status="pending">Sources pending</span>
+      <span id="overview-state-title" role="status">Loading current picture</span>
+    </div>
+  </header>
+
+  <section class="overview-change" aria-labelledby="overview-change-title">
+    <h2 id="overview-change-title">What changed?</h2>
+    <p id="overview-change-summary">No changes since this view opened.</p>
+  </section>
+
+  <section id="watch-center" class="watch-center" aria-labelledby="watch-center-title">
+    <details id="watch-center-details">
+    <summary class="watch-center-heading">
+      <div>
+        <p class="overview-eyebrow">Local tools · no account or API key</p>
+        <h2 id="watch-center-title">Watch, search, and export</h2>
+      </div>
+      <p id="overview-history-status" role="status">Waiting for local history.</p>
+    </summary>
+    <div class="watch-center-grid">
+      <div class="watch-search-panel">
+        <form id="incident-search-form" role="search">
+          <label for="incident-search-query">Search retained incidents</label>
+          <div class="watch-inline">
+            <input id="incident-search-query" type="search" minlength="2" maxlength="100" autocomplete="off" placeholder="Place, event, kind, or status">
+            <button type="submit">Search</button>
+          </div>
+        </form>
+        <p id="incident-search-status" class="watch-help" role="status">Search stays on this device.</p>
+        <ol id="incident-search-results" class="watch-result-list"></ol>
+        <div class="watch-export-actions" role="group" aria-label="Export local incidents">
+          <button id="export-incidents-csv" type="button">Export CSV</button>
+          <button id="export-incidents-geojson" type="button">Export GeoJSON</button>
+          <button id="print-selected-incident" type="button">Print selected</button>
+        </div>
+      </div>
+      <details class="watch-settings-panel">
+        <summary>Watch regions and alerts</summary>
+        <form id="watch-region-form">
+          <div class="watch-form-grid">
+            <label>Local label <input id="watch-region-label" type="text" maxlength="80" required placeholder="Home, coast, newsroom…"></label>
+            <label>Radius (km) <input id="watch-region-radius" type="number" min="1" max="2000" value="100" required></label>
+            <label>Latitude <input id="watch-region-lat" type="number" min="-85" max="85" step="any" required></label>
+            <label>Longitude <input id="watch-region-lon" type="number" min="-180" max="180" step="any" required></label>
+            <label>Category
+              <select id="watch-region-kind">
+                <option value="">All categories</option>
+                <option value="earthquake">Earthquake</option>
+                <option value="weather_alert">Weather warning</option>
+                <option value="tropical_cyclone">Tropical cyclone</option>
+                <option value="tsunami">Tsunami</option>
+                <option value="wildfire">Wildfire</option>
+                <option value="volcano">Volcano</option>
+                <option value="conflict_report">Conflict report</option>
+                <option value="humanitarian_report">Humanitarian report</option>
+                <option value="aircraft">Aircraft</option>
+                <option value="space_weather">Space weather</option>
+                <option value="market_snapshot">Market signal</option>
+                <option value="technology_activity">Internet signal</option>
+              </select>
+            </label>
+            <label>Minimum severity
+              <select id="watch-region-severity">
+                <option>Unknown</option><option>Minor</option><option selected>Moderate</option><option>Severe</option><option>Extreme</option>
+              </select>
+            </label>
+          </div>
+          <label>Optional keywords <input id="watch-region-keywords" type="text" maxlength="300" placeholder="comma-separated words"></label>
+          <div class="watch-form-actions">
+            <button id="watch-region-map-pick" type="button">Pick on map</button>
+            <button type="submit">Add watch region</button>
+          </div>
+          <p class="watch-help">Choose Pick on map and click a location, right-click the map, or enter coordinates directly. Press Escape to cancel map picking. No geolocation or geocoder is used.</p>
+          <p id="watch-region-status" class="watch-help" role="status"></p>
+        </form>
+        <ul id="watch-region-list" class="watch-region-list"></ul>
+        <fieldset class="notification-settings">
+          <legend>Notifications</legend>
+          <p id="notification-permission-status" class="watch-help">Notifications are off until you enable them.</p>
+          <div class="watch-inline">
+            <button id="enable-notifications" type="button">Enable notifications</button>
+            <button id="disable-notifications" type="button">Disable</button>
+          </div>
+          <label><input id="notification-in-app" type="checkbox" checked> In-app notification center</label>
+          <label><input id="notification-system" type="checkbox" checked> Windows notifications when available</label>
+          <div id="notification-kind-list" class="notification-kind-list" role="group" aria-label="Notification categories"></div>
+          <div class="watch-form-grid">
+            <label>Quiet hours start <input id="notification-quiet-start" type="time" value="22:00"></label>
+            <label>Quiet hours end <input id="notification-quiet-end" type="time" value="07:00"></label>
+            <label>Minimum severity
+              <select id="notification-minimum-severity"><option>Unknown</option><option>Minor</option><option selected>Moderate</option><option>Severe</option><option>Extreme</option></select>
+            </label>
+          </div>
+          <button id="save-notification-settings" type="button">Save alert settings</button>
+        </fieldset>
+      </details>
+      <div class="wall-controls" role="group" aria-label="Wall display controls">
+        <strong>Wall display</strong>
+        <button id="wall-display-toggle" type="button" aria-pressed="false">Start auto-cycle</button>
+        <button id="wall-display-previous" type="button">Previous</button>
+        <button id="wall-display-next" type="button">Next</button>
+        <label>Interval
+          <select id="wall-display-interval"><option value="10">10 seconds</option><option value="30" selected>30 seconds</option><option value="60">60 seconds</option><option value="120">2 minutes</option><option value="300">5 minutes</option></select>
+        </label>
+        <span id="wall-display-status" role="status">Stopped.</span>
+      </div>
+      <aside class="notification-center" aria-labelledby="notification-center-title">
+        <h3 id="notification-center-title">Local alerts</h3>
+        <ol id="notification-center-list"></ol>
+        <p id="notification-center-empty">No local alerts.</p>
+      </aside>
+    </div>
+    </details>
+  </section>
+
+  <div id="overview-filters" class="overview-filters" role="toolbar" aria-label="Incident category">
+    <button type="button" data-incident-filter="global" aria-pressed="true">Global</button>
+    <button type="button" data-incident-filter="natural" aria-pressed="false" tabindex="-1">Natural hazards</button>
+    <button type="button" data-incident-filter="weather" aria-pressed="false" tabindex="-1">Severe weather</button>
+    <button type="button" data-incident-filter="conflict" aria-pressed="false" tabindex="-1">Conflict / humanitarian</button>
+    <button type="button" data-incident-filter="mobility" aria-pressed="false" tabindex="-1">Aviation / marine</button>
+    <button type="button" data-incident-filter="signals" aria-pressed="false" tabindex="-1">Signals</button>
+  </div>
+
+  <section class="overview-now" aria-labelledby="overview-now-title">
+    <div class="overview-section-heading">
+      <div>
+        <p class="overview-eyebrow">Prioritized, not predicted</p>
+        <h2 id="overview-now-title">Now</h2>
+      </div>
+      <span id="overview-count">0 matching · showing 0</span>
+    </div>
+    <ol id="overview-now-list" aria-busy="true"></ol>
+    <p id="overview-empty" class="overview-empty" hidden>No incidents match this category.</p>
+  </section>
+
+  <section class="overview-map-panel" aria-labelledby="overview-map-title">
+    <div class="overview-section-heading">
+      <div>
+        <p class="overview-eyebrow">Bundled offline base</p>
+        <h2 id="overview-map-title">Map</h2>
+      </div>
+      <span id="overview-map-count">0 visible</span>
+    </div>
+    <div id="overview-map" role="application" aria-label="Incident map. Use the incident list for a complete keyboard-accessible alternative."></div>
+    <div class="overview-map-controls">
+      <label><input id="overview-detail-tiles" type="checkbox"> Optional detailed map tiles</label>
+      <span id="overview-map-status" role="status">Loading bundled world boundaries.</span>
+    </div>
+    <form id="overview-pin-form" class="overview-pin-form">
+      <span class="overview-pin-instructions">Add a pin without dragging the map</span>
+      <label>Latitude <input id="overview-pin-lat" type="number" min="-85" max="85" step="any" required></label>
+      <label>Longitude <input id="overview-pin-lon" type="number" min="-180" max="180" step="any" required></label>
+      <label>Label <input id="overview-pin-label" type="text" maxlength="80" value="Pinned"></label>
+      <button type="submit">Add pin</button>
+    </form>
+    <p class="overview-map-note">Country boundaries are bundled with Foglight. Detailed tiles are optional, disabled by default, and never replace the offline base.</p>
+  </section>
+
+  <section class="overview-catalog" aria-labelledby="overview-catalog-title">
+    <details id="overview-catalog">
+      <summary id="overview-catalog-title">Browse all incidents without the map</summary>
+      <p>Use this keyboard-accessible index to inspect incidents beyond the Now list.</p>
+      <ol id="overview-catalog-list"></ol>
+      <button type="button" id="overview-catalog-more">Load more incidents</button>
+    </details>
+  </section>
+
+  <aside class="overview-sources" aria-labelledby="overview-sources-title">
+    <details>
+      <summary id="overview-sources-title">Source status and freshness</summary>
+      <p>Foglight keeps source outages visible and never treats missing data as “all clear.”</p>
+      <ul id="overview-source-list"><li>Sources pending.</li></ul>
+    </details>
+  </aside>
+  <div id="overview-live" class="sr-only" aria-live="polite" aria-atomic="true"></div>
+</main>
+
+<div id="incident-drawer-backdrop" class="incident-drawer-backdrop" hidden></div>
+<aside id="incident-drawer" role="dialog" aria-modal="true" aria-labelledby="incident-drawer-title" aria-hidden="true" hidden>
+  <header class="incident-drawer-header">
+    <div>
+      <p class="overview-eyebrow">Local incident record</p>
+      <h2 id="incident-drawer-title" tabindex="-1">Incident details</h2>
+    </div>
+    <button id="incident-drawer-close" type="button" aria-label="Close incident details">&times;</button>
+  </header>
+  <div id="incident-drawer-body"></div>
+  <div id="incident-drawer-live" class="sr-only" aria-live="polite" aria-atomic="true"></div>
+</aside>
 
 <div id="main">
 
@@ -1060,7 +1285,7 @@
     <section class="panel" id="panel-conflict">
       <header><span class="icon cnf">CONFL</span><span class="title">Conflict Watch</span><span class="badge" id="bd-conflict">&middot;</span></header>
       <div class="body" style="padding:0">
-        <div class="stream-wrap"><div class="stream stream-track" id="body-conflict"><div class="empty">Loading GDELT&hellip;</div></div></div>
+        <div class="stream-wrap"><div class="stream stream-track" id="body-conflict"><div class="empty">Loading conflict wire&hellip;</div></div></div>
       </div>
     </section>
   </div>
@@ -1093,7 +1318,7 @@
       <div id="tv-stack">
         <div class="tv-tabs" id="tv-tabs"></div>
         <div id="tv-frame-wrap">
-          <iframe id="tv-frame" referrerpolicy="strict-origin-when-cross-origin" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe>
+          <iframe id="tv-frame" title="Live news stream" referrerpolicy="strict-origin-when-cross-origin" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe>
           <div id="tv-overlay"><div class="play"></div><span id="tv-overlay-label">Start stream</span></div>
           <a id="tv-open" href="https://www.youtube.com/" target="_blank" rel="noopener noreferrer">Open on YouTube</a>
         </div>
@@ -1160,14 +1385,14 @@
 </div>
 
 <!-- ============ settings panel ============ -->
-<button id="settings-close" onclick="closeSettings()" title="Close settings (Esc)">&times;</button>
-<div id="pane-settings">
+<button id="settings-close" title="Close settings (Esc)" aria-label="Close settings">&times;</button>
+<div id="pane-settings" role="dialog" aria-modal="true" aria-labelledby="settings-title" aria-hidden="true">
   <div class="settings-wrap">
     <div class="settings-back-bar">
-      <button class="back-btn" onclick="closeSettings()">&larr; Back to dashboard</button>
+      <button class="back-btn settings-back">&larr; Back to dashboard</button>
       <span class="hint">or press <b>Esc</b></span>
     </div>
-    <h1>Foglight &middot; Settings</h1>
+    <h1 id="settings-title">Foglight &middot; Settings</h1>
 
     <div class="settings-section">
       <h2>Panels</h2>
@@ -1182,7 +1407,7 @@
       <div class="setting-row">
         <div class="lbl"></div>
         <div class="right-actions">
-          <button onclick="saveWatchlist()">Save watchlist</button>
+          <button id="save-watchlist">Save watchlist</button>
         </div>
       </div>
     </div>
@@ -1194,7 +1419,7 @@
       <div class="setting-row">
         <div class="lbl"></div>
         <div class="right-actions">
-          <button class="danger" onclick="clearAllAnnotations()">Clear all pins</button>
+          <button class="danger" id="clear-annotations">Clear all pins</button>
         </div>
       </div>
     </div>
@@ -1205,25 +1430,15 @@
       <div id="tv-channels"></div>
     </div>
 
-    <div class="settings-section">
-      <h2>Out-of-the-box data</h2>
-      <div class="sub">Foglight ships these sources live with no signup: GDELT (world events &amp; conflict), USGS (earthquakes, volcanoes), NWS (US severe weather), NOAA NHC (tropical cyclones), NOAA SWPC (space weather), ReliefWeb (humanitarian sitreps), mempool.space, Wikipedia EventStreams, GitHub events, ISS, CoinPaprika, Frankfurter (forex), SEC EDGAR, Hacker News, Reddit.</div>
+    <div class="settings-section" aria-labelledby="provider-attribution-title">
+      <h2 id="provider-attribution-title">Data sources &amp; attribution</h2>
+      <div class="sub">Overview sources work without signup or API keys. Optional and compatibility sources are labeled separately; their terms and authentication status are shown here without exposing any saved credential.</div>
+      <div id="provider-attributions" aria-live="polite"><div class="empty">Open Settings to load source terms&hellip;</div></div>
     </div>
 
     <div class="settings-section">
       <h2>Optional API keys</h2>
-      <div class="sub">Each key unlocks a panel. Signup is free at every link. Keys live only on disk inside this foglight instance &mdash; nothing leaves your machine.</div>
-
-      <div class="setting-row">
-        <div class="lbl">
-          <h3>AISStream.io &middot; Marine traffic</h3>
-          <p>Live global ship positions on the world map. Free key at <a target="_blank" rel="noopener" href="https://aisstream.io/authenticate">aisstream.io</a>.</p>
-        </div>
-        <div class="right-actions">
-          <input type="password" id="key-aisstream" placeholder="paste key" autocomplete="off">
-          <span class="key-status" id="ks-aisstream">not set</span>
-        </div>
-      </div>
+      <div class="sub">NASA FIRMS is the only optional integration currently implemented. The key is stored locally, never returned by the settings API, and redacted from cache names, logs, and errors.</div>
 
       <div class="setting-row">
         <div class="lbl">
@@ -1237,55 +1452,10 @@
       </div>
 
       <div class="setting-row">
-        <div class="lbl">
-          <h3>OpenSky &middot; Flights overhead</h3>
-          <p>OAuth2 client credentials. Create an account at <a target="_blank" rel="noopener" href="https://opensky-network.org/index.php?option=com_users&view=registration">opensky-network.org</a>, then create an API client in your account.</p>
-        </div>
-        <div class="right-actions">
-          <input type="text" id="key-opensky_id" placeholder="client id" autocomplete="off" style="width:130px">
-          <input type="password" id="key-opensky_secret" placeholder="client secret" autocomplete="off" style="width:130px">
-          <span class="key-status" id="ks-opensky_id">not set</span>
-        </div>
-      </div>
-
-      <div class="setting-row">
-        <div class="lbl">
-          <h3>OpenWeatherMap &middot; Global severe weather</h3>
-          <p>Extends Severe Weather beyond the US plus global radar tiles. Free key at <a target="_blank" rel="noopener" href="https://openweathermap.org/api">openweathermap.org/api</a>.</p>
-        </div>
-        <div class="right-actions">
-          <input type="password" id="key-openweathermap" placeholder="paste key" autocomplete="off">
-          <span class="key-status" id="ks-openweathermap">not set</span>
-        </div>
-      </div>
-
-      <div class="setting-row">
-        <div class="lbl">
-          <h3>FRED &middot; Macro indicators</h3>
-          <p>Fed funds rate, 10Y yield, CPI, unemployment, VIX. Free key at <a target="_blank" rel="noopener" href="https://fred.stlouisfed.org/docs/api/api_key.html">fred.stlouisfed.org</a>.</p>
-        </div>
-        <div class="right-actions">
-          <input type="password" id="key-fred" placeholder="paste key" autocomplete="off">
-          <span class="key-status" id="ks-fred">not set</span>
-        </div>
-      </div>
-
-      <div class="setting-row">
-        <div class="lbl">
-          <h3>Finnhub &middot; Stock markets</h3>
-          <p>Indices, watchlist, earnings, market news. Free key at <a target="_blank" rel="noopener" href="https://finnhub.io/register">finnhub.io</a>.</p>
-        </div>
-        <div class="right-actions">
-          <input type="password" id="key-finnhub" placeholder="paste key" autocomplete="off">
-          <span class="key-status" id="ks-finnhub">not set</span>
-        </div>
-      </div>
-
-      <div class="setting-row">
         <div class="lbl"></div>
         <div class="right-actions">
-          <button onclick="saveKeys()">Save keys</button>
-          <button class="danger" onclick="clearAllKeys()">Clear all</button>
+          <button id="save-keys">Save key</button>
+          <button class="danger" id="clear-keys">Clear key</button>
         </div>
       </div>
     </div>
@@ -1296,23 +1466,23 @@
 
       <div class="setting-row">
         <div class="lbl"><h3>Master &middot; ambient audio</h3><p>Top-level toggle. Everything below is muted while this is off.</p></div>
-        <div class="toggle" id="aud-master" onclick="toggleAudio('master')"></div>
+        <button type="button" class="toggle" id="aud-master" data-audio="master" aria-label="Toggle master audio"></button>
       </div>
       <div class="setting-row">
         <div class="lbl"><h3>Earthquakes &ge; M4.0</h3><p>Pitch scaled to magnitude.</p></div>
-        <div class="toggle" id="aud-earthquake" onclick="toggleAudio('earthquake')"></div>
+        <button type="button" class="toggle" id="aud-earthquake" data-audio="earthquake" aria-label="Toggle earthquake audio"></button>
       </div>
       <div class="setting-row">
         <div class="lbl"><h3>Tornado warnings</h3><p>Soft chime when NWS issues a tornado warning.</p></div>
-        <div class="toggle" id="aud-tornado" onclick="toggleAudio('tornado')"></div>
+        <button type="button" class="toggle" id="aud-tornado" data-audio="tornado" aria-label="Toggle tornado audio"></button>
       </div>
       <div class="setting-row">
         <div class="lbl"><h3>Hurricane advisories</h3><p>Subdued horn.</p></div>
-        <div class="toggle" id="aud-hurricane" onclick="toggleAudio('hurricane')"></div>
+        <button type="button" class="toggle" id="aud-hurricane" data-audio="hurricane" aria-label="Toggle hurricane audio"></button>
       </div>
       <div class="setting-row">
         <div class="lbl"><h3>Bitcoin block mined</h3><p>Quiet thunk on each new block.</p></div>
-        <div class="toggle" id="aud-bitcoin_block" onclick="toggleAudio('bitcoin_block')"></div>
+        <button type="button" class="toggle" id="aud-bitcoin_block" data-audio="bitcoin_block" aria-label="Toggle bitcoin block audio"></button>
       </div>
     </div>
 
@@ -1326,12 +1496,12 @@
       </div>
       <div class="setting-row">
         <div class="lbl"><h3>Close foglight</h3><p>Same as the X button &mdash; stops the local server and closes the app.</p></div>
-        <button class="danger" onclick="shutdownApp()">Shut down</button>
+        <button class="danger js-shutdown">Shut down</button>
       </div>
       <div class="setting-row">
         <div class="lbl"></div>
         <div class="right-actions">
-          <button onclick="closeSettings()">Back</button>
+          <button class="settings-back">Back</button>
         </div>
       </div>
     </div>
@@ -1354,7 +1524,7 @@
 <div id="alert-drawer">
   <header>
     <div class="ad-event" id="ad-event">Alert</div>
-    <button class="ad-close" onclick="closeAlertDrawer()" title="Close (Esc)">&times;</button>
+    <button class="ad-close" id="alert-close" type="button" aria-label="Close alert details" title="Close (Esc)">&times;</button>
   </header>
   <div class="ad-body" id="ad-body">&hellip;</div>
 </div>
@@ -1367,7 +1537,7 @@
   </div>
 </div>
 
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
-<script src="/app.js"></script>
+<script src="/vendor/leaflet/leaflet.js"></script>
+<script type="module" src="/app.js"></script>
 </body>
 </html>

@@ -1,4 +1,9 @@
-# Foglight — Spec Document
+# Foglight — Historical Spec Document
+
+> **Status:** This file preserves the original product brief and includes
+> aspirational integrations. It is not a statement of the current release.
+> See `README.md`, `docs/FEATURES.md`, and `docs/DATA_SOURCES.md` for the
+> implemented feature set and live provider list.
 
 *A situation room for planet Earth. Live activity, all at once, in one launchable app. Free APIs only — no-key sources work out of the box, optional-key sources unlock additional panels when the user pastes their own free API key into settings.*
 
@@ -22,10 +27,9 @@ Open the app, see the planet's nervous system pulsing. Conflict events, earthqua
 
 | Source | Provides | Notes |
 |---|---|---|
-| **GDELT 2.0 DOC API** | Global news events with conflict coding, geolocation, sentiment, themes | 100+ languages, 15-min updates, JSON, CORS enabled |
+| **UN / DW / France 24 RSS** | Public conflict and world-news reporting | Supporting context with original-publisher links |
 | **USGS Earthquakes** | Live seismic events worldwide | GeoJSON feeds at multiple time/magnitude thresholds |
 | **NWS api.weather.gov** | US severe weather alerts, tornado warnings, flood warnings, hurricane advisories | Requires User-Agent header |
-| **Open-Meteo** | Global weather: current conditions, forecasts | No tracking, no cookies, CC BY 4.0 |
 | **mempool.space** | Bitcoin mempool, blocks, fees, transactions, lightning network | Genuinely no limits |
 | **Wikipedia EventStreams** | Live global edit firehose | SSE stream |
 | **GitHub public events** | Every public commit, PR, release, issue | Rate limited but no auth required |
@@ -51,6 +55,16 @@ Open the app, see the planet's nervous system pulsing. Conflict events, earthqua
 
 For each optional source, the README walks the user through getting their free key in plain language.
 
+### 3.3 Conditional compatibility sources
+
+Open-Meteo click-to-inspect weather remains a legacy compatibility path only.
+Its free endpoint is restricted to non-commercial use, so Foglight disables it
+by default and does not use it in Overview. GDELT is not a current provider:
+its hosted APIs have unspecified client quotas and are unnecessary for the
+keyless incident view. Retiring `waterservices.usgs.gov` endpoints are not used;
+any future USGS water integration must target the modern Water Data OGC API and
+revisit its API-key threshold.
+
 ---
 
 ## 4. Out-of-box panels (no signup required)
@@ -58,10 +72,10 @@ For each optional source, the README walks the user through getting their free k
 Each panel description: what it shows, source, key data fields, visual treatment notes.
 
 ### 4.1 World Events Map ✅ *flagship panel*
-- **Source:** GDELT 2.0 DOC API
-- **Shows:** Geocoded global events from news media — protests, military actions, diplomatic events, disasters, civil unrest
-- **Key fields:** Event location (lat/lon), CAMEO event code, actors, source URL, tone, themes
-- **Visual:** World map with pins, color-coded by event type, sized by mention volume or tone intensity. Pins pulse on arrival. Click for source articles.
+- **Sources:** Canonical hazard/observation providers plus supporting public RSS
+- **Shows:** Located official hazards and observations; news reports remain clearly labeled supporting context
+- **Key fields:** Source geometry, event time, lifecycle, provenance, and explainable priority
+- **Visual:** World map with category shapes/colors, deterministic clustering, and synchronized incident detail.
 
 ### 4.2 Earthquake Feed ✅
 - **Source:** USGS GeoJSON feeds
@@ -70,9 +84,9 @@ Each panel description: what it shows, source, key data fields, visual treatment
 - **Visual:** Map overlay (shared with World Events Map) plus side panel with chronological list. Bigger quakes get bigger pins.
 
 ### 4.3 Severe Weather ✅
-- **Sources:** NWS (api.weather.gov) for US, Open-Meteo for global current conditions
-- **Shows:** Active US watches/warnings (tornado, severe thunderstorm, flood, hurricane, winter storm). Global current conditions where users zoom in.
-- **Visual:** US polygons on map for active alerts, color-coded by severity. Sidebar lists active alerts chronologically. Globally, hovering shows current temp/conditions.
+- **Source:** NWS (api.weather.gov)
+- **Shows:** Active US watches/warnings (tornado, severe thunderstorm, flood, hurricane, winter storm).
+- **Visual:** US polygons on map for active alerts, color-coded by severity. Sidebar lists active alerts chronologically.
 
 ### 4.4 Bitcoin Pulse ✅
 - **Source:** mempool.space
@@ -167,7 +181,7 @@ Off by default. Toggled in settings. When on, subtle audio cues fire on events:
 | Earthquake ≥ M6.0 | Deeper resonant tone |
 | US tornado warning issued | Soft warning chime (not the actual EAS tone) |
 | Hurricane advisory issued | Subdued horn |
-| Major GDELT conflict event | Soft pulse |
+| Major world-context update | Soft pulse |
 | Bitcoin block mined | Quiet "thunk" |
 | Breaking news (RSS keyword match) | Gentle ping |
 | ISS overhead pass starting | Optional chime |
