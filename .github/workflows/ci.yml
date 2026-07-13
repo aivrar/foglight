@@ -71,6 +71,7 @@ jobs:
         run: |
           $env:FOGLIGHT_NO_BROWSER = "1"
           $env:FOGLIGHT_PORT = "19877"
+          $worldPath = Join-Path $env:RUNNER_TEMP "foglight-world-$PID.geojson"
           $p = Start-Process -FilePath ".\dist\Foglight.exe" -WindowStyle Hidden -PassThru
           try {
             $ready = $false
@@ -87,7 +88,9 @@ jobs:
             $root = Invoke-WebRequest -UseBasicParsing -Uri "http://127.0.0.1:19877/"
             $settings = Invoke-WebRequest -UseBasicParsing -Uri "http://127.0.0.1:19877/api/settings"
             $leaflet = Invoke-WebRequest -UseBasicParsing -Uri "http://127.0.0.1:19877/vendor/leaflet/leaflet.js"
-            $world = Invoke-WebRequest -UseBasicParsing -Uri "http://127.0.0.1:19877/assets/natural-earth-110m-countries.v5.1.1.geojson"
+            $world = Invoke-WebRequest -UseBasicParsing `
+              -Uri "http://127.0.0.1:19877/assets/natural-earth-110m-countries.v5.1.1.geojson" `
+              -OutFile $worldPath -PassThru
             if ($ping.StatusCode -ne 200 -or $root.StatusCode -ne 200 -or $settings.StatusCode -ne 200 `
                 -or $leaflet.StatusCode -ne 200 -or $world.StatusCode -ne 200) {
               throw "Packaged smoke test returned a non-200 response"
@@ -97,7 +100,10 @@ jobs:
               throw "Packaged response is missing Content-Security-Policy"
             }
             if ($csp -match "unpkg|cartocdn") { throw "Packaged CSP retains a removed map CDN" }
-            if ($world.RawContentLength -ne 202773) { throw "Packaged world asset is incomplete" }
+            $worldHash = (Get-FileHash -Algorithm SHA256 $worldPath).Hash.ToLowerInvariant()
+            if ($worldHash -ne "b853e8ab6412d655dbe2fe8719d7cfde24e266db347eeb694b4df0f627a2fdb8") {
+              throw "Packaged world asset failed its SHA-256 integrity check"
+            }
             $session = Invoke-RestMethod -Uri "http://127.0.0.1:19877/api/session"
             try {
               Invoke-WebRequest -UseBasicParsing -Uri "http://127.0.0.1:19877/api/settings" `
@@ -122,6 +128,7 @@ jobs:
             $manifestHash = ((Get-Content ".\dist\SHA256SUMS.txt") -split "\s+")[0].ToLowerInvariant()
             if ($actualHash -ne $manifestHash) { throw "SHA256SUMS.txt does not match Foglight.exe" }
           } finally {
+            if (Test-Path -LiteralPath $worldPath) { Remove-Item -LiteralPath $worldPath -Force }
             $conn = Get-NetTCPConnection -LocalPort 19877 -State Listen -ErrorAction SilentlyContinue
             if ($conn) { Stop-Process -Id $conn.OwningProcess -Force }
             if ($p -and -not $p.HasExited) { Stop-Process -Id $p.Id -Force }
