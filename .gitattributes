@@ -4,6 +4,7 @@
 *.html text eol=lf
 *.md text eol=lf
 *.json text eol=lf
+*.geojson text eol=lf
 
 *.exe binary
 *.dll binary

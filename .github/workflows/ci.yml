@@ -88,11 +88,12 @@ jobs:
             $root = Invoke-WebRequest -UseBasicParsing -Uri "http://127.0.0.1:19877/"
             $settings = Invoke-WebRequest -UseBasicParsing -Uri "http://127.0.0.1:19877/api/settings"
             $leaflet = Invoke-WebRequest -UseBasicParsing -Uri "http://127.0.0.1:19877/vendor/leaflet/leaflet.js"
-            $world = Invoke-WebRequest -UseBasicParsing `
-              -Uri "http://127.0.0.1:19877/assets/natural-earth-110m-countries.v5.1.1.geojson" `
-              -OutFile $worldPath -PassThru
+            & curl.exe --fail --silent --show-error `
+              --output $worldPath `
+              "http://127.0.0.1:19877/assets/natural-earth-110m-countries.v5.1.1.geojson"
+            if ($LASTEXITCODE -ne 0) { throw "Packaged world asset download failed" }
             if ($ping.StatusCode -ne 200 -or $root.StatusCode -ne 200 -or $settings.StatusCode -ne 200 `
-                -or $leaflet.StatusCode -ne 200 -or $world.StatusCode -ne 200) {
+                -or $leaflet.StatusCode -ne 200) {
               throw "Packaged smoke test returned a non-200 response"
             }
             $csp = [string]$root.Headers["Content-Security-Policy"]
@@ -102,7 +103,8 @@ jobs:
             if ($csp -match "unpkg|cartocdn") { throw "Packaged CSP retains a removed map CDN" }
             $worldHash = (Get-FileHash -Algorithm SHA256 $worldPath).Hash.ToLowerInvariant()
             if ($worldHash -ne "b853e8ab6412d655dbe2fe8719d7cfde24e266db347eeb694b4df0f627a2fdb8") {
-              throw "Packaged world asset failed its SHA-256 integrity check"
+              $worldBytes = (Get-Item -LiteralPath $worldPath).Length
+              throw "Packaged world asset failed SHA-256: $worldHash ($worldBytes bytes)"
             }
             $session = Invoke-RestMethod -Uri "http://127.0.0.1:19877/api/session"
             try {

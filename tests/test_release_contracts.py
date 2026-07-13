@@ -58,9 +58,12 @@ def test_release_docs_ci_and_current_hero_match_gated_contracts():
         assert value in checklist
     assert "foglight-windows-unsigned-qa" in workflow
     assert "smoke_packaged_release.py" in workflow
+    assert "curl.exe --fail --silent --show-error" in workflow
     assert "Get-FileHash -Algorithm SHA256 $worldPath" in workflow
     assert "b853e8ab6412d655dbe2fe8719d7cfde24e266db347eeb694b4df0f627a2fdb8" in workflow
     assert "RawContentLength" not in workflow
+    attributes = (ROOT / ".gitattributes").read_text(encoding="utf-8")
+    assert "*.geojson text eol=lf" in attributes
     assert "100/100 (10/10)" in evidence
     assert "Production Artifact Evidence" in evidence
     assert "Open Production Artifact Evidence" not in evidence
