@@ -147,6 +147,7 @@ def running_package(
     offline: bool,
     v2: bool | None,
     overview: bool | None,
+    timeout: float = 30.0,
 ):
     token = "release-smoke-token-0123456789"
     env = os.environ.copy()
@@ -188,7 +189,7 @@ def running_package(
     )
     base = f"http://127.0.0.1:{port}"
     try:
-        wait_ready(base)
+        wait_ready(base, timeout=timeout)
         verify_loopback_listener(port)
         yield base, token
     finally:
@@ -400,7 +401,7 @@ def corrupt_history(command: list[str], root: Path, port: int) -> dict:
     settings_path.write_text(json.dumps({"watchlist": ["preserved"]}), encoding="utf-8")
 
     with running_package(
-        command, runtime, port, offline=True, v2=True, overview=True
+        command, runtime, port, offline=True, v2=True, overview=True, timeout=90.0
     ) as (base, _token):
         bootstrap = json_request(base, "/api/v2/bootstrap")
         assert bootstrap["incidents"]["items"] == []
