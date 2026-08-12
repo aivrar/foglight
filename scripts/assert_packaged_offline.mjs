@@ -13,12 +13,21 @@ try {
   page.on('pageerror', error => pageErrors.push(error.message));
   await page.goto(base, { waitUntil: 'domcontentloaded' });
   await page.locator('#overview-surface').waitFor({ state: 'visible' });
-  await page.locator('#overview-history-status').waitFor({ state: 'visible' });
-  const history = (await page.locator('#overview-history-status').textContent()) || '';
-  if (!history.includes('Cached local history — not live.')) {
+  const offlineLabel = 'Cached local history — not live.';
+  const agePattern = /Oldest source cache 2h old\./;
+  let history = '';
+  {
+    const deadline = Date.now() + 60_000;
+    while (Date.now() < deadline) {
+      history = (await page.locator('#overview-history-status').textContent()) || '';
+      if (history.includes(offlineLabel) && agePattern.test(history)) break;
+      await page.waitForTimeout(500);
+    }
+  }
+  if (!history.includes(offlineLabel)) {
     throw new Error(`packaged offline label was not explicit: ${history}`);
   }
-  if (!/Oldest source cache 2h old\./.test(history)) {
+  if (!agePattern.test(history)) {
     throw new Error(`packaged cached age was not rendered accurately: ${history}`);
   }
   const incidentCount = await page.locator('#overview-now-list .overview-incident').count();
