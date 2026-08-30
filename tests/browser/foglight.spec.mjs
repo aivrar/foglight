@@ -320,6 +320,12 @@ async function installDeterministicNetwork(page, overrides = {}) {
     if (url.hostname === 'tile.openstreetmap.org' && overrides.__tileSuccess) {
       return route.fulfill({ body: deterministicMapTile, contentType: 'image/svg+xml' });
     }
+    if (url.hostname === 'www.youtube.com' && url.pathname === '/embed/live_stream') {
+      return route.fulfill({
+        contentType: 'text/html',
+        body: '<!doctype html><style>html,body{margin:0;width:100%;height:100%;background:#000}</style>',
+      });
+    }
     return route.abort();
   });
 
