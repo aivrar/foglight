@@ -3,11 +3,24 @@ updates:
   - package-ecosystem: pip
     directory: /
     schedule:
-      interval: weekly
-    open-pull-requests-limit: 5
+      interval: monthly
+    cooldown:
+      default-days: 14
+    groups:
+      routine-python-updates:
+        patterns:
+          - "*"
+        update-types:
+          - minor
+          - patch
+    open-pull-requests-limit: 2
 
   - package-ecosystem: github-actions
     directory: /
     schedule:
-      interval: weekly
-    open-pull-requests-limit: 5
+      interval: monthly
+    groups:
+      routine-action-updates:
+        patterns:
+          - "*"
+    open-pull-requests-limit: 2
