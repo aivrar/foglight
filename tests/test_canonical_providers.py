@@ -6,7 +6,9 @@ import pytest
 
 from foglight_core.models import Certainty, EventKind, Severity, Status, Urgency
 from foglight_core.providers.canonical import (
+    CANONICAL_ADAPTERS,
     CORE_CANONICAL_ADAPTERS,
+    PANEL_CANONICAL_ADAPTERS,
     CanonicalAdapter,
     DriftDiagnostic,
     _cap,
@@ -23,6 +25,11 @@ from foglight_core.storage import ObservationStore
 INGESTED_AT = "2026-07-10T22:00:00Z"
 CATALOG = json.loads(
     (Path(__file__).parent / "fixtures" / "v2" / "core_providers.json").read_text(
+        encoding="utf-8"
+    )
+)
+PANEL_CATALOG = json.loads(
+    (Path(__file__).parent / "fixtures" / "v2" / "panel_providers.json").read_text(
         encoding="utf-8"
     )
 )
@@ -47,6 +54,8 @@ def empty_body(provider_id, fixture):
         return b'{"metadata":{"id":"9414290","name":"San Francisco","lat":"37.8","lon":"-122.4"},"data":[]}'
     if provider_id == "nasa_jpl_fireballs":
         return b'{"signature":{"version":"1.2"},"count":0}'
+    if provider_id == "cisa_kev":
+        return b'{"title":"CISA KEV","catalogVersion":"1","dateReleased":"2026-07-10T00:00:00Z","count":0,"vulnerabilities":[]}'
     return b"[]"
 
 
@@ -70,6 +79,8 @@ def partial_body(provider_id, fixture):
         value["data"] = value["data"][:1]
         value["count"] = 1
         value["data"][0][value["fields"].index("energy")] = None
+    elif provider_id == "cisa_kev":
+        value["vulnerabilities"][0].pop("cveID")
     else:
         value[0] = ["future_field"]
     return encode(value)
@@ -93,6 +104,8 @@ def future_body(provider_id, fixture):
         value["data"][0]["futureField"] = "ignored"
     elif provider_id == "nasa_jpl_fireballs":
         value["futureField"] = "ignored"
+    elif provider_id == "cisa_kev":
+        value["vulnerabilities"][0]["futureField"] = "ignored"
     else:
         value[0]["future_field"] = "ignored"
     return encode(value)
@@ -131,6 +144,9 @@ def test_core_adapter_golden_normal_empty_partial_malformed_and_future(provider_
 
 def test_canonical_registry_is_exact_and_unknown_provider_is_explicit():
     assert set(CORE_CANONICAL_ADAPTERS) == set(CATALOG)
+    assert len(CORE_CANONICAL_ADAPTERS) == 14
+    assert set(PANEL_CANONICAL_ADAPTERS) == set(PANEL_CATALOG) == {"cisa_kev"}
+    assert set(CANONICAL_ADAPTERS) == set(CATALOG) | set(PANEL_CATALOG)
     assert all(
         adapter.source_urls or adapter.contextual
         for adapter in CORE_CANONICAL_ADAPTERS.values()
@@ -451,6 +467,7 @@ def test_jpl_fireball_invalid_records_are_isolated(field, value):
 def test_nhc_tsunami_gdacs_and_eonet_source_specific_semantics():
     nhc = normalize_provider("nhc_storms", encode(CATALOG["nhc_storms"]["valid"]), ingested_at=INGESTED_AT).observations[0]
     assert nhc.kind is EventKind.TROPICAL_CYCLONE
+    assert nhc.centroid == (-79.9, 22.9)
     assert nhc.metrics["intensity"].unit == "kn"
     assert nhc.metrics["pressure"].value == 970
 
@@ -474,6 +491,18 @@ def test_nhc_tsunami_gdacs_and_eonet_source_specific_semantics():
     assert eonet.geometry["coordinates"] == [-105, 39]
 
 
+def test_nhc_accepts_legacy_snake_case_coordinate_aliases():
+    body = copy.deepcopy(CATALOG["nhc_storms"]["valid"])
+    storm = body["activeStorms"][0]
+    storm["latitude_numeric"] = storm.pop("latitudeNumeric")
+    storm["longitude_numeric"] = storm.pop("longitudeNumeric")
+
+    result = normalize_provider("nhc_storms", encode(body), ingested_at=INGESTED_AT)
+
+    assert result.observations[0].centroid == (-79.9, 22.9)
+    assert not any(item.code in {"missing_fields", "unknown_fields"} for item in result.diagnostics)
+
+
 def test_report_and_measurement_adapters_label_semantics_and_provenance():
     volcano = normalize_provider("smithsonian_volcano", encode(CATALOG["smithsonian_volcano"]["valid"]), ingested_at=INGESTED_AT).observations[0]
     assert volcano.event_at is None
@@ -487,6 +516,124 @@ def test_report_and_measurement_adapters_label_semantics_and_provenance():
     assert relief.event_at is None
     assert relief.metrics["publisher"].value == "Fixture Humanitarian Organization"
     assert relief.certainty is Certainty.UNKNOWN
+
+
+def test_cisa_kev_is_recent_bounded_and_does_not_infer_impact_or_urgency():
+    result = normalize_provider(
+        "cisa_kev",
+        encode(PANEL_CATALOG["cisa_kev"]["valid"]),
+        ingested_at=INGESTED_AT,
+    )
+
+    assert [item.provider_record_id for item in result.observations] == [
+        "CVE-2026-12345"
+    ]
+    item = result.observations[0]
+    assert item.kind is EventKind.UNKNOWN
+    assert item.status is Status.UNKNOWN
+    assert item.event_at is None
+    assert item.source_updated_at is None
+    assert item.severity is Severity.UNKNOWN
+    assert item.urgency is Urgency.UNKNOWN
+    assert item.certainty is Certainty.UNKNOWN
+    assert item.metrics["due_date"].value == "2026-07-22"
+    assert item.metrics["due_date"].provenance == "CISA FCEB dueDate"
+    assert item.metrics["known_ransomware_campaign_use"].value == "Known"
+
+
+def test_panel_only_cisa_adapter_golden_empty_partial_malformed_and_future():
+    fixture = PANEL_CATALOG["cisa_kev"]
+    valid = normalize_provider(
+        "cisa_kev", encode(fixture["valid"]), ingested_at=INGESTED_AT
+    )
+    assert len(valid.observations) == fixture["expected_count"]
+    assert valid.diagnostics == ()
+
+    empty = normalize_provider(
+        "cisa_kev", empty_body("cisa_kev", fixture), ingested_at=INGESTED_AT
+    )
+    assert empty.observations == ()
+    assert empty.diagnostics == ()
+
+    partial = normalize_provider(
+        "cisa_kev", partial_body("cisa_kev", fixture), ingested_at=INGESTED_AT
+    )
+    assert partial.observations == ()
+    assert partial.diagnostics[0].code == "missing_fields"
+
+    malformed = normalize_provider(
+        "cisa_kev", b"{not-json", ingested_at=INGESTED_AT
+    )
+    assert malformed.observations == ()
+    assert malformed.diagnostics[0].code == "malformed_body"
+
+    future = normalize_provider(
+        "cisa_kev", future_body("cisa_kev", fixture), ingested_at=INGESTED_AT
+    )
+    assert [item.content_hash for item in future.observations] == [
+        item.content_hash for item in valid.observations
+    ]
+    assert future.diagnostics[0].code == "unknown_fields"
+
+
+def test_cisa_kev_caps_same_day_catalog_additions_deterministically():
+    payload = copy.deepcopy(PANEL_CATALOG["cisa_kev"]["valid"])
+    template = payload["vulnerabilities"][0]
+    payload["vulnerabilities"] = []
+    for index in range(260):
+        record = copy.deepcopy(template)
+        record["cveID"] = f"CVE-2026-{10000 + index}"
+        payload["vulnerabilities"].append(record)
+
+    result = normalize_provider("cisa_kev", encode(payload), ingested_at=INGESTED_AT)
+
+    assert len(result.observations) == 250
+    assert result.observations[0].provider_record_id == "CVE-2026-10259"
+    assert result.observations[-1].provider_record_id == "CVE-2026-10010"
+
+
+def test_cisa_kev_rejects_future_additions_and_refilters_persisted_panel_rows():
+    future_payload = copy.deepcopy(PANEL_CATALOG["cisa_kev"]["valid"])
+    future_payload["vulnerabilities"] = [future_payload["vulnerabilities"][0]]
+    future_payload["vulnerabilities"][0]["dateAdded"] = "2026-07-11"
+    future = normalize_provider(
+        "cisa_kev", encode(future_payload), ingested_at=INGESTED_AT
+    )
+    assert future.observations == ()
+    assert future.diagnostics[0].fields == ("dateAdded",)
+
+    boundary_payload = copy.deepcopy(PANEL_CATALOG["cisa_kev"]["valid"])
+    boundary = boundary_payload["vulnerabilities"][0]
+    too_old = copy.deepcopy(boundary)
+    boundary["cveID"] = "CVE-2026-60000"
+    boundary["dateAdded"] = "2026-05-11"
+    boundary["dueDate"] = "2026-06-01"
+    too_old["cveID"] = "CVE-2026-60001"
+    too_old["dateAdded"] = "2026-05-10"
+    too_old["dueDate"] = "2026-05-31"
+    boundary_payload["vulnerabilities"] = [too_old, boundary]
+    bounded = normalize_provider(
+        "cisa_kev", encode(boundary_payload), ingested_at=INGESTED_AT
+    )
+    assert [item.provider_record_id for item in bounded.observations] == [
+        "CVE-2026-60000"
+    ]
+
+    old_payload = copy.deepcopy(PANEL_CATALOG["cisa_kev"]["valid"])
+    old_payload["vulnerabilities"] = [old_payload["vulnerabilities"][1]]
+    old = normalize_provider(
+        "cisa_kev", encode(old_payload), ingested_at="2026-01-10T12:00:00Z"
+    ).observations[0]
+    current = normalize_provider(
+        "cisa_kev", encode(PANEL_CATALOG["cisa_kev"]["valid"]),
+        ingested_at=INGESTED_AT,
+    ).observations[0]
+
+    projected = project_legacy_panel("cisa_kev", (old, current))
+    assert [item["cve"] for item in projected["items"]] == ["CVE-2026-12345"]
+    assert project_legacy_panel(
+        "cisa_kev", (old,), reference_at=INGESTED_AT
+    ) == {"items": []}
 
 
 def test_normalizer_helper_failure_paths_are_bounded_and_non_inventive():
@@ -680,6 +827,33 @@ def test_panel_projections_preserve_primary_visible_values_and_reject_unknowns()
         ingested_at=INGESTED_AT,
     )
     assert project_legacy_panel("noaa_space_weather", swpc.observations)[0]["Kp"] == 5.33
+    kev = normalize_provider(
+        "cisa_kev",
+        encode(PANEL_CATALOG["cisa_kev"]["valid"]),
+        ingested_at=INGESTED_AT,
+    )
+    assert project_legacy_panel("cisa_kev", kev.observations) == {
+        "items": [
+            {
+                "cve": "CVE-2026-12345",
+                "vendor": "Fixture Systems",
+                "product": "Fixture Gateway",
+                "name": "Fixture Gateway Command Injection Vulnerability",
+                "date_added": "2026-07-01",
+                "due_date": "2026-07-22",
+                "ransomware": "Known",
+                "description": (
+                    "Fixture Gateway contains a command injection vulnerability "
+                    "that has been exploited in the wild."
+                ),
+                "action": (
+                    "Apply mitigations per vendor instructions or discontinue use "
+                    "of the product if mitigations are unavailable."
+                ),
+                "link": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog",
+            }
+        ]
+    }
     with pytest.raises(KeyError, match="no V1 panel projection"):
         project_legacy_panel("missing", ())
 

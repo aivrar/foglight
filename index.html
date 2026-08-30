@@ -263,7 +263,7 @@
      loads) collapses to ~40px and you can't see the video. */
   #col-left  > .panel { flex: 1 1 0; min-height: 0; }
   #col-right > .panel { flex: 1 1 0; min-height: 0; }
-  #panel-tv          { flex: 2.2 1 0; }
+  #col-right > #panel-tv { flex: 2.2 1 0; }
   #pane-map   { grid-area: map;    position: relative; background: #03060f; min-height: 0; min-width: 0; }
   #pane-bottom{ grid-area: bottom; display: grid; gap: 1px; background: var(--border); min-height: 0; min-width: 0;
                 grid-auto-flow: column; grid-auto-columns: 1fr; }
@@ -950,8 +950,9 @@
     #theaterbar { padding: 0 8px; }
 
     #main {
+      --mobile-map-height: clamp(360px, 52vh, 520px);
       grid-template-columns: minmax(0, 1fr);
-      grid-template-rows: minmax(360px, 52vh) auto auto auto;
+      grid-template-rows: var(--mobile-map-height) auto auto auto;
       grid-template-areas:
         "map"
         "left"
@@ -961,14 +962,14 @@
       overflow-y: auto;
     }
     #main.optional-empty {
-      grid-template-rows: minmax(360px, 52vh) auto auto auto;
+      grid-template-rows: var(--mobile-map-height) auto auto auto;
       grid-template-areas:
         "map"
         "left"
         "right"
         "bottom";
     }
-    #pane-map { min-height: min(520px, 52vh); }
+    #pane-map { height: 100%; min-height: 0; }
     #col-left, #col-right {
       min-height: auto;
       overflow: visible;
@@ -976,7 +977,7 @@
     #col-left > .panel, #col-right > .panel {
       flex: 0 0 240px;
     }
-    #panel-tv { flex-basis: 280px; }
+    #col-right > #panel-tv { flex-basis: 280px; }
     #pane-bottom {
       grid-auto-flow: row;
       grid-auto-columns: unset;
@@ -1016,11 +1017,21 @@
     }
   }
 </style>
+<link rel="stylesheet" href="/intel-console.css">
 </head>
 <body class="mode-standard">
 
 <div id="topbar">
-  <div id="brand"><span class="lamp"></span> Foglight</div>
+  <div id="brand">
+    <span class="lamp" aria-hidden="true"></span>
+    <span class="brand-lockup">
+      <span class="brand-word">Foglight</span>
+      <span class="brand-sub">Global Operations</span>
+    </span>
+  </div>
+  <div id="classification-mark" aria-label="Public source, unclassified data">
+    <span>Public sources</span><b>Unclassified</b>
+  </div>
   <nav id="display-modes" aria-label="Display mode" hidden>
     <button type="button" data-display-mode="overview">Overview</button>
     <button type="button" data-display-mode="standard">Standard</button>
@@ -1042,6 +1053,7 @@
   <div class="stat"><span class="lab">SEISMIC&nbsp;≥M4</span><span class="val" id="stat-quakes">--</span><span class="delta" id="dlt-quakes"></span></div>
   <div class="stat"><span class="lab">CYCLONES</span><span class="val" id="stat-cyclones">--</span><span class="delta" id="dlt-cyclones"></span></div>
   <div class="stat"><span class="lab">CONFLICT&nbsp;WIRE</span><span class="val" id="stat-conflict">--</span><span class="delta" id="dlt-conflict"></span></div>
+  <div class="stat"><span class="lab">KEV&nbsp;60D</span><span class="val" id="stat-cyber">--</span><span class="delta" id="dlt-cyber"></span></div>
   <div class="stat"><span class="lab">SITREPS</span><span class="val" id="stat-relief">--</span><span class="delta" id="dlt-relief"></span></div>
   <div class="stat"><span class="lab">GDACS</span><span class="val" id="stat-gdacs">--</span><span class="delta" id="dlt-gdacs"></span></div>
   <div class="stat"><span class="lab">Kp</span><span class="val" id="stat-kp">--</span></div>
@@ -1074,9 +1086,9 @@
 <main id="overview-surface" aria-labelledby="overview-title" data-view-state="loading" data-density="overview">
   <header class="overview-header">
     <div>
-      <p class="overview-eyebrow">Current picture</p>
-      <h1 id="overview-title" tabindex="-1">What matters now</h1>
-      <p id="overview-state-message">Reading the local incident history.</p>
+      <p class="overview-eyebrow">Foglight / open-source fusion</p>
+      <h1 id="overview-title" tabindex="-1">Global intelligence picture</h1>
+      <p id="overview-state-message">Building the current picture from local incident history.</p>
     </div>
     <div class="overview-status-cluster">
       <span id="overview-health" data-status="pending">Sources pending</span>
@@ -1085,8 +1097,17 @@
   </header>
 
   <section class="overview-change" aria-labelledby="overview-change-title">
-    <h2 id="overview-change-title">What changed?</h2>
+    <h2 id="overview-change-title">Change detection</h2>
     <p id="overview-change-summary">No changes since this view opened.</p>
+  </section>
+
+  <section id="overview-metrics" class="overview-metrics" aria-label="Current collection summary">
+    <article><span>Active records</span><strong id="overview-metric-active">--</strong><small>loaded picture</small></article>
+    <article><span>Priority max</span><strong id="overview-metric-priority">--</strong><small>explainable score</small></article>
+    <article><span>Hazard lane</span><strong id="overview-metric-hazards">--</strong><small>active signals</small></article>
+    <article><span>World context</span><strong id="overview-metric-context">--</strong><small>reports + sitreps</small></article>
+    <article><span>Geolocated</span><strong id="overview-metric-geo">--</strong><small>map-ready records</small></article>
+    <article><span>Collection</span><strong id="overview-metric-sources">--/--</strong><small>sources online</small></article>
   </section>
 
   <section id="watch-center" class="watch-center" aria-labelledby="watch-center-title">
@@ -1293,6 +1314,14 @@
   <!-- CENTER: world map -->
   <div id="pane-map">
     <div id="map"></div>
+    <div id="mission-ribbon" aria-label="Operational telemetry">
+      <div class="mission-cell mission-primary"><span>Collection posture</span><strong id="mission-posture">Initializing</strong></div>
+      <div class="mission-cell"><span>Active theater</span><strong id="mission-theater">Global</strong></div>
+      <div class="mission-cell"><span>Source link</span><strong id="mission-sources">-- / --</strong></div>
+      <div class="mission-cell"><span>Geomagnetic</span><strong id="mission-space-weather">Kp --</strong></div>
+      <div class="mission-cell"><span>Orbital track</span><strong id="mission-orbit">Acquiring</strong></div>
+      <div class="mission-cell"><span>Manifest</span><strong id="mission-manifest">-- public</strong></div>
+    </div>
     <div id="map-legend">
       <div class="li"><span class="sw q"></span> Earthquakes</div>
       <div class="li"><span class="sw c"></span> Conflict events</div>
@@ -1319,7 +1348,7 @@
         <div class="tv-tabs" id="tv-tabs"></div>
         <div id="tv-frame-wrap">
           <iframe id="tv-frame" title="Live news stream" referrerpolicy="strict-origin-when-cross-origin" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe>
-          <div id="tv-overlay"><div class="play"></div><span id="tv-overlay-label">Start stream</span></div>
+          <button id="tv-overlay" type="button"><span class="play" aria-hidden="true"></span><span id="tv-overlay-label">Start stream</span></button>
           <a id="tv-open" href="https://www.youtube.com/" target="_blank" rel="noopener noreferrer">Open on YouTube</a>
         </div>
       </div>
@@ -1336,8 +1365,15 @@
     </section>
   </div>
 
-  <!-- BOTTOM ROW: bitcoin + optional panels -->
+  <!-- BOTTOM ROW: cyber watch + optional public-signal panels -->
   <div id="pane-bottom">
+    <section class="panel" id="panel-cyber">
+      <header><span class="icon cyber">CISA</span><span class="title">Known Exploited Vulnerabilities</span><span class="badge" id="bd-cyber">&middot;</span></header>
+      <div class="body" style="padding:0">
+        <div class="stream-wrap"><div class="stream stream-track slow" id="body-cyber"><div class="empty">Loading CISA KEV catalog&hellip;</div></div></div>
+      </div>
+    </section>
+
     <section class="panel" id="panel-btc">
       <header><span class="icon btc">BTC</span><span class="title">Bitcoin Pulse</span><span class="badge" id="bd-btc">&middot;</span></header>
       <div id="fee-stack"></div>

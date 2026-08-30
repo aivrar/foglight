@@ -1,6 +1,7 @@
 import { defineConfig } from '@playwright/test';
 
 const port = 19876;
+const browserExecutable = process.env.FOGLIGHT_BROWSER_EXECUTABLE;
 
 export default defineConfig({
   testDir: './tests/browser',
@@ -19,6 +20,7 @@ export default defineConfig({
     timezoneId: 'UTC',
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
+    launchOptions: browserExecutable ? { executablePath: browserExecutable } : {},
   },
   webServer: {
     command: `python scripts/run_test_server.py --port ${port}`,

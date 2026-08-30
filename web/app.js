@@ -5,7 +5,7 @@
  *
  * Left rail (always on):   Quakes, Severe Weather, Conflict Watch
  * Right rail (toggleable): Live TV, Tropical Cyclones, Humanitarian Sitreps
- * Bottom strip:            Bitcoin Pulse + optional (Wiki, GitHub, SEC, HN/Reddit)
+ * Bottom strip:            CISA KEV + optional (Bitcoin, Wiki, GitHub, SEC, HN/Reddit)
  *
  * The internet-pulse panels (Wikipedia, GitHub, SEC, HN/Reddit) are off by
  * default. They are toggleable from Settings. All stream panels autoscroll
@@ -21,9 +21,11 @@ import {
   element as el,
   escapeHtml,
   formatUtcTime as fmtTime,
+  latestKpValue,
   runWithConcurrency,
   safeHttpUrl,
   updateSourceFreshness,
+  validMapCoordinates,
 } from './core.js';
 import { createAppStore } from './store.js';
 import { normalizeInitialSettings } from './settings.js';
@@ -144,10 +146,29 @@ setInterval(updateClock, 1000); updateClock();
 
 function updateFeedsStat() {
   const total = feedsHealth.live + feedsHealth.cached + feedsHealth.errored;
-  $('stat-feeds-txt').textContent = total ? `${feedsHealth.live}/${total} live` : 'starting';
+  $('stat-feeds-txt').textContent = !total ? 'starting'
+    : feedsHealth.live === total ? `${feedsHealth.live}/${total} live`
+      : [
+        `${feedsHealth.live} live`,
+        feedsHealth.cached ? `${feedsHealth.cached} cached` : '',
+        feedsHealth.errored ? `${feedsHealth.errored} failed` : '',
+      ].filter(Boolean).join(' · ');
   const dot = $('stat-feeds').querySelector('.dot');
-  dot.className = 'dot' + (feedsHealth.errored > total / 2 ? ' err'
-                         : feedsHealth.errored ? ' stale' : '');
+  dot.className = 'dot' + (total && feedsHealth.errored > total / 2 ? ' err'
+                         : total && (feedsHealth.cached || feedsHealth.errored
+                           || feedsHealth.live === 0) ? ' stale' : '');
+  const missionSources = $('mission-sources');
+  if (missionSources) missionSources.textContent = total ? `${feedsHealth.live} / ${total}` : '-- / --';
+  const posture = $('mission-posture');
+  if (posture) {
+    const state = !total ? 'initializing'
+      : feedsHealth.errored > total / 2 ? 'degraded'
+        : feedsHealth.live === total ? 'nominal'
+          : feedsHealth.live ? 'partial'
+            : 'cached fallback';
+    posture.textContent = state;
+    posture.dataset.status = state.replace(' ', '-');
+  }
   window.__foglightFeedHealth = { ...feedsHealth, total };
 }
 function recordFreshness(source, fresh) {
@@ -169,6 +190,7 @@ let MAP = null;
 let OPEN_METEO_ENABLED = false;
 let YAHOO_FINANCE_ENABLED = false;
 let PROVIDER_CATALOG_LOADED = false;
+let PROVIDER_CATALOG_ITEMS = null;
 let LAYERS = { quakes: null, conflict: null, weather: null, iss: null, cyclones: null, eonet: null, flights: null, firms: null };
 let ISS_MARKER = null;
 
@@ -176,7 +198,7 @@ let ISS_MARKER = null;
 // THEATER spotlight — zoom presets + filter terms
 // ============================================================
 const THEATERS = {
-  global: { label: 'Global',           view: [25, 20, 3],    kw: null },
+  global: { label: 'Global',           view: null,            kw: null },
   ukr:    { label: 'Ukraine/Russia',   view: [50, 32, 5],    kw: /ukrain|russia|kyiv|kharkiv|donetsk|kherson|moscow|belgorod|kursk/i },
   isr:    { label: 'Israel/Lebanon',   view: [32.5, 35.5, 6],kw: /israel|gaza|lebanon|hezbollah|west bank|jerusalem|rafah|tel aviv|hamas|idf/i },
   sdn:    { label: 'Sudan/Horn',       view: [12, 32, 5],    kw: /sudan|khartoum|darfur|ethiopia|tigray|somalia|south sudan|rsf|eritrea/i },
@@ -185,6 +207,13 @@ const THEATERS = {
   mex:    { label: 'US-Mex Border',    view: [27, -101, 5],  kw: /mexic|border|cartel|sinaloa|jalisco|cbp|migrant|tijuana|el paso|rio grande/i },
   kor:    { label: 'Korean Peninsula', view: [38.5, 127, 6],  kw: /korea|pyongyang|seoul|dprk|kim jong/i },
 };
+function fitGlobalMap() {
+  if (!MAP) return;
+  // A fixed world view resets reliably after a wrapped regional center;
+  // fitBounds can otherwise choose the nearest 360-degree world copy.
+  MAP.stop();
+  MAP.setView([12.5, 0], 1, { animate: false });
+}
 
 // EONET category → color + short label. Used both on the map and for the legend.
 const EONET_CAT_STYLE = {
@@ -211,8 +240,12 @@ function eonetStyle(cats) {
 function initMap() {
   MAP = L.map('map', {
     worldCopyJump: true, zoomControl: true, attributionControl: true,
-    minZoom: 2, maxZoom: 8, preferCanvas: true,
-  }).setView([25, 20], 3);
+    minZoom: 0, maxZoom: 8, preferCanvas: true,
+  }).setView([0, 0], 0);
+  fitGlobalMap();
+  MAP.on('resize', () => {
+    if (APP_STORE.state.ui.theater === 'global') fitGlobalMap();
+  });
 
   addBundledWorldBase(MAP, { statusNode: $('map-status') });
 
@@ -261,7 +294,7 @@ function initMap() {
 // Tactical status counts displayed in the top status strip. Each setStatus
 // call also computes a delta vs the previous sample, surfacing change-of-
 // state ("▲ 3" when conflict wire jumped).
-const STATUS      = { hotspots: 0, wxalerts: 0, quakes: 0, cyclones: 0, conflict: 0, relief: 0, gdacs: 0 };
+const STATUS      = { hotspots: 0, wxalerts: 0, quakes: 0, cyclones: 0, conflict: 0, cyber: 0, relief: 0, gdacs: 0 };
 const STATUS_PREV = {};  // populated by setStatus on second+ call
 function setStatus(key, val, severity) {
   const prev = STATUS[key];
@@ -322,9 +355,17 @@ function switchTheater(id) {
   const t = THEATERS[id];
   if (!t) return;
   APP_STORE.state.ui.theater = id;
+  const missionTheater = $('mission-theater');
+  if (missionTheater) missionTheater.textContent = t.label;
   document.querySelectorAll('#theaterbar .t-btn').forEach(b =>
     b.classList.toggle('active', b.dataset.theater === id));
-  if (MAP) MAP.setView([t.view[0], t.view[1]], t.view[2]);
+  if (MAP) {
+    if (id === 'global') fitGlobalMap();
+    else {
+      MAP.stop();
+      MAP.setView([t.view[0], t.view[1]], t.view[2], { animate: false });
+    }
+  }
   // Re-render conflict + sitreps + GDACS with the theater filter applied.
   runRefresh(refreshConflict);
   runRefresh(refreshRelief);
@@ -853,7 +894,13 @@ async function refreshQuakes() {
     const mag = p.mag;
     const magCls = mag >= 6 ? 'm4' : mag >= 5 ? 'm3' : mag >= 4 ? 'm2' : 'm1';
     const dt = new Date(p.time);
-    const row = el('div', 'row clickable');
+    const quakeUrl = safeHttpUrl(p.url);
+    const row = el(quakeUrl ? 'a' : 'div', `row${quakeUrl ? ' clickable' : ''}`);
+    if (quakeUrl) {
+      row.href = quakeUrl;
+      row.target = '_blank';
+      row.rel = 'noopener noreferrer';
+    }
     row.appendChild(el('div', 'when', fmtTime(dt)));
     const lbl = el('div', 'label');
     lbl.appendChild(el('span', 'title', p.place || 'Unknown'));
@@ -863,10 +910,6 @@ async function refreshQuakes() {
     row.appendChild(lbl);
     const m = el('div'); m.appendChild(el('span', 'mag ' + magCls, mag ? mag.toFixed(1) : '?'));
     row.appendChild(m);
-    const quakeUrl = safeHttpUrl(p.url);
-    if (quakeUrl) {
-      row.addEventListener('click', () => window.open(quakeUrl, '_blank', 'noopener'));
-    }
     out.appendChild(row);
   }
 
@@ -1027,19 +1070,12 @@ async function refreshSpaceWeather() {
   recordFreshness('space-weather', fresh);
   // NOAA SWPC returns either array-of-arrays (older format with header row)
   // or array-of-objects {time_tag, Kp, ...}. Support both.
-  let kp = null;
-  if (Array.isArray(body)) {
-    for (let i = body.length - 1; i >= 0; i--) {
-      const row = body[i];
-      let v = NaN;
-      if (Array.isArray(row))       v = parseFloat(row[1]);
-      else if (row && typeof row === 'object') v = parseFloat(row.Kp != null ? row.Kp : row.kp);
-      if (!isNaN(v)) { kp = v; break; }
-    }
-  }
+  const kp = latestKpValue(body);
   const el = $('stat-kp');
   if (kp == null) {
     el.textContent = '--';
+    const mission = $('mission-space-weather');
+    if (mission) mission.textContent = 'Kp --';
     return;
   }
   // Severity: 0-3 quiet (good), 4 unsettled, 5-6 G1-G2 (warn), ≥7 G3+ (hot).
@@ -1050,6 +1086,8 @@ async function refreshSpaceWeather() {
   else sev = 'good';
   el.className = 'val ' + sev;
   el.textContent = kp.toFixed(1);
+  const mission = $('mission-space-weather');
+  if (mission) mission.textContent = `Kp ${kp.toFixed(1)} · ${kp >= 5 ? 'storm' : kp >= 4 ? 'unsettled' : 'quiet'}`;
 }
 
 async function refreshEonet() {
@@ -1185,6 +1223,9 @@ const SEVERITY_COLOR = {
   Moderate: '#e6b14a',
   Minor:    '#4ec5ff',
 };
+const SEVERITY_LABEL = {
+  Extreme: 'EXT', Severe: 'SEV', Moderate: 'MOD', Minor: 'MIN', Unknown: 'UNK',
+};
 
 async function refreshWeather() {
   const { body, fresh } = await fgetJSON('/api/nws');
@@ -1215,19 +1256,28 @@ async function refreshWeather() {
     if (/Tornado/i.test(ev))   tornadoSeen = true;
     if (/Hurricane/i.test(ev)) hurricaneSeen = true;
     const dt = p.onset || p.sent;
-    const row = el('div', 'row clickable');
+    const row = el('button', 'row clickable');
+    row.type = 'button';
+    row.setAttribute('aria-label', `${ev}. ${sev} severity. ${(p.areaDesc || '').slice(0, 90)}`);
     row.appendChild(el('div', 'when', dt ? fmtTime(new Date(dt)) : '--'));
     const lbl = el('div', 'label');
     lbl.appendChild(el('span', 'title', ev));
     lbl.appendChild(el('span', 'sub',  (p.areaDesc || '').slice(0, 90)));
     row.appendChild(lbl);
-    row.appendChild(el('div', 'right', sev[0]));
+    row.appendChild(el('div', `right severity-chip severity-${sev.toLowerCase()}`, SEVERITY_LABEL[sev] || 'UNK'));
     // NWS alerts don't have a stable public HTML URL --- open an in-app
     // detail drawer with the full description / instruction / area / times.
     row.addEventListener('click', () => openNwsAlert(p));
     out.appendChild(row);
-    if (f.geometry && f.geometry.type === 'Polygon') {
-      const coords = f.geometry.coordinates[0].map(([lon, lat]) => [lat, lon]);
+    if (f.geometry && ['Polygon', 'MultiPolygon'].includes(f.geometry.type)) {
+      const toRing = ring => Array.isArray(ring)
+        ? ring.filter(point => Array.isArray(point) && point.length >= 2)
+          .map(([lon, lat]) => [Number(lat), Number(lon)])
+          .filter(([lat, lon]) => Number.isFinite(lat) && Number.isFinite(lon))
+        : [];
+      const coords = f.geometry.type === 'Polygon'
+        ? f.geometry.coordinates.map(toRing)
+        : f.geometry.coordinates.map(polygon => polygon.map(toRing));
       const poly = L.polygon(coords, {
         color: SEVERITY_COLOR[sev] || '#e6b14a',
         fillColor: SEVERITY_COLOR[sev] || '#e6b14a',
@@ -1308,10 +1358,12 @@ async function refreshCyclones() {
       div.appendChild(el('div', 'basin', (s.classification || '')));
       out.appendChild(div);
 
-      const lat = parseFloat(s.latitude || '0');
-      const lon = parseFloat(s.longitude || '0');
-      if (lat && lon) {
-        L.circleMarker([lat, lon], {
+      const coordinates = validMapCoordinates(
+        s.latitudeNumeric ?? s.latitude_numeric ?? s.latitude,
+        s.longitudeNumeric ?? s.longitude_numeric ?? s.longitude,
+      );
+      if (coordinates) {
+        L.circleMarker(coordinates, {
           radius: major ? 10 : intensity >= 64 ? 8 : 6,
           color: major ? '#ff5a4d' : '#5fb8ff',
           fillColor: major ? '#ff5a4d' : '#5fb8ff',
@@ -1327,17 +1379,22 @@ async function refreshCyclones() {
     any = true;
     out.appendChild(el('div', 'hazard-section', 'VOLCANO ACTIVITY'));
     for (const volcano of volcanoes.slice(0, 6)) {
-      const row = el('div', 'row clickable');
+      const url = safeHttpUrl(volcano.link);
+      const row = el(url ? 'a' : 'div', `row${url ? ' clickable' : ''}`);
+      if (url) {
+        row.href = url;
+        row.target = '_blank';
+        row.rel = 'noopener noreferrer';
+      }
       row.appendChild(el('div', 'when', 'VOL'));
       const lbl = el('div', 'label');
       lbl.appendChild(el('span', 'title', volcano.name || 'Volcano notice'));
       lbl.appendChild(el('span', 'sub', (volcano.summary || '').slice(0, 100)));
       row.appendChild(lbl);
-      const url = safeHttpUrl(volcano.link);
-      if (url) row.addEventListener('click', () => window.open(url, '_blank', 'noopener'));
       out.appendChild(row);
-      if (Number.isFinite(Number(volcano.lat)) && Number.isFinite(Number(volcano.lon))) {
-        L.circleMarker([Number(volcano.lat), Number(volcano.lon)], {
+      const coordinates = validMapCoordinates(volcano.lat, volcano.lon);
+      if (coordinates) {
+        L.circleMarker(coordinates, {
           radius: 6, color: '#ff5a4d', fillColor: '#ff5a4d',
           fillOpacity: 0.55, weight: 1.2, bubblingMouseEvents: false,
         }).bindPopup(`<b>${escapeHtml(volcano.name || 'Volcano notice')}</b><br>` +
@@ -1371,7 +1428,13 @@ async function refreshCyclones() {
     for (const f of bigQuakes) {
       const p = f.properties;
       const dt = new Date(p.time);
-      const row = el('div', 'row clickable');
+      const quakeUrl = safeHttpUrl(p.url);
+      const row = el(quakeUrl ? 'a' : 'div', `row${quakeUrl ? ' clickable' : ''}`);
+      if (quakeUrl) {
+        row.href = quakeUrl;
+        row.target = '_blank';
+        row.rel = 'noopener noreferrer';
+      }
       row.appendChild(el('div', 'when', fmtTime(dt)));
       const lbl = el('div', 'label');
       lbl.appendChild(el('span', 'title', p.place || 'Unknown'));
@@ -1381,8 +1444,6 @@ async function refreshCyclones() {
       const mag = p.mag || 0;
       const magCls = mag >= 6 ? 'm4' : mag >= 5 ? 'm3' : 'm2';
       row.appendChild((() => { const d = el('div'); d.appendChild(el('span', 'mag ' + magCls, mag.toFixed(1))); return d; })());
-      const quakeUrl = safeHttpUrl(p.url);
-      if (quakeUrl) row.addEventListener('click', () => window.open(quakeUrl, '_blank', 'noopener'));
       out.appendChild(row);
     }
   }
@@ -1478,6 +1539,48 @@ const { refreshBitcoin, refreshWiki, refreshGitHub } = createCommunityController
 });
 
 
+// ============================================================
+// CISA KNOWN EXPLOITED VULNERABILITIES
+// ============================================================
+
+async function refreshCyber() {
+  const { body, fresh } = await fgetJSON('/api/cisa-kev');
+  setBadge('bd-cyber', fresh);
+  recordFreshness('cisa-kev', fresh);
+  const items = Array.isArray(body?.items) ? body.items : [];
+  // This is catalog volume, not an inferred threat level. Keep the count
+  // neutral; severity and urgency are not fields in CISA's KEV catalog.
+  setStatus('cyber', items.length);
+  if (!items.length) {
+    fillStream($('body-cyber'), fresh === 'error'
+      ? '<div class="empty"><b>CISA KEV is temporarily unreachable.</b> No cached catalog is available; retry scheduled.</div>'
+      : '<div class="empty">No vulnerabilities were added in the current collection window.</div>');
+    return;
+  }
+  let html = '';
+  for (const item of items.slice(0, 80)) {
+    const url = safeHttpUrl(item?.link);
+    const tag = url ? 'a' : 'div';
+    const href = url ? ` href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer"` : '';
+    const cve = String(item?.cve || 'CVE').slice(0, 24);
+    const vendor = [item?.vendor, item?.product].filter(Boolean).join(' / ').slice(0, 52);
+    const name = String(item?.name || item?.description || 'Known exploited vulnerability').slice(0, 120);
+    const due = String(item?.due_date || '').slice(0, 10);
+    const added = String(item?.date_added || '').slice(0, 10);
+    const ransomware = item?.ransomware === true
+      || String(item?.ransomware || '').toLowerCase() === 'known';
+    const dueLabel = due ? `FCEB ${escapeHtml(due.slice(5))}` : 'KEV';
+    html += `<${tag} class="ln kev-row${ransomware ? ' kev-ransom' : ''}"${href}>`
+      + `<span class="t">${escapeHtml(added || '--')}</span>`
+      + `<span class="who">${escapeHtml(cve)}</span>`
+      + `<span class="ttl"><b>${escapeHtml(name)}</b>${vendor ? `<small>${escapeHtml(vendor)}</small>` : ''}</span>`
+      + `<span class="kev-due">${ransomware ? `RANSOM · ${dueLabel}` : dueLabel}</span>`
+      + `</${tag}>`;
+  }
+  fillStream($('body-cyber'), html);
+}
+
+
 
 // ============================================================
 // ISS TRACKER
@@ -1495,6 +1598,8 @@ async function refreshISS() {
   const lon = parseFloat(body.iss_position.longitude);
   if (isNaN(lat) || isNaN(lon)) return;
   $('iss-readout').textContent = `ISS · ${lat.toFixed(2)}, ${lon.toFixed(2)}`;
+  const missionOrbit = $('mission-orbit');
+  if (missionOrbit) missionOrbit.textContent = `${lat.toFixed(1)}° ${lon.toFixed(1)}°`;
   if (!ISS_MARKER) {
     ISS_MARKER = L.marker([lat, lon], {
       icon: pulseIcon('iss', 14),
@@ -1572,6 +1677,15 @@ function renderTvTabs() {
 }
 
 let TV_STARTED = false;
+function setTvOverlayHidden(hidden, { moveFocus = false } = {}) {
+  const overlay = $('tv-overlay');
+  overlay.classList.toggle('hide', hidden);
+  overlay.hidden = hidden;
+  overlay.tabIndex = hidden ? -1 : 0;
+  overlay.setAttribute('aria-hidden', String(hidden));
+  if (hidden && moveFocus) $('tv-open')?.focus();
+}
+
 function switchTv(channelId) {
   const ch = TV_CHANNELS.find(c => c.id === channelId);
   if (!ch) return;
@@ -1582,7 +1696,7 @@ function switchTv(channelId) {
   $('tv-frame').src = ytEmbedUrl(ch.ytChannel, TV_STARTED ? false : true);
   setTvOpenLink(ch.ytChannel);
   $('tv-overlay-label').textContent = `Start ${ch.label}`;
-  $('tv-overlay').classList.toggle('hide', TV_STARTED);
+  setTvOverlayHidden(TV_STARTED);
   document.querySelectorAll('.tv-tab').forEach(b =>
     b.classList.toggle('active', b.dataset.id === channelId));
   fget('/api/settings', {
@@ -1596,7 +1710,7 @@ function startTvWithSound() {
   const ch = TV_CHANNELS.find(c => c.id === APP_STORE.state.ui.tvChannel) || TV_CHANNELS[0];
   $('tv-frame').src = ytEmbedUrl(ch.ytChannel, false);
   setTvOpenLink(ch.ytChannel);
-  $('tv-overlay').classList.add('hide');
+  setTvOverlayHidden(true, { moveFocus: true });
 }
 
 // ============================================================
@@ -1604,6 +1718,7 @@ function startTvWithSound() {
 // ============================================================
 
 const PANEL_DEFS = [
+  { id: 'cyber',    label: 'CISA KEV Cyber Watch',     node: 'panel-cyber' },
   { id: 'tv',       label: 'Live TV',                 node: 'panel-tv' },
   { id: 'conflict', label: 'Conflict Watch',          node: 'panel-conflict' },
   { id: 'cyclones', label: 'Major Hazards',           node: 'panel-cyclones' },
@@ -1651,7 +1766,7 @@ function renderOptionalCta() {
   }
   // If everything optional is HIDDEN, the bottom row would be empty ---
   // replace it entirely with the CTA strip so the layout breathes upward.
-  const allHidden = hidden.length === optionalIds.length;
+  const allHidden = hidden.length === optionalIds.length && !APP_STORE.state.ui.panels.cyber;
   main.classList.toggle('optional-empty', allHidden);
   main.style.gridTemplateRows = '';
   main.style.gridTemplateAreas = '';
@@ -1659,8 +1774,9 @@ function renderOptionalCta() {
     bottom.style.display = 'none';
     // Keep the CTA in the bottom grid row so it cannot cover map attribution.
     if (!cta) {
-      cta = document.createElement('div');
+      cta = document.createElement('button');
       cta.id = 'optional-cta';
+      cta.type = 'button';
       cta.addEventListener('click', () => { openSettings(); scrollSettingsTo('panels'); });
       main.appendChild(cta);
     }
@@ -1874,7 +1990,7 @@ async function refreshSettings() {
   if (!body) return;
   const normalized = normalizeInitialSettings(body, {
     panelIds: PANEL_DEFS.map(panel => panel.id),
-    defaultVisible: new Set(['tv', 'conflict', 'cyclones', 'relief', 'iss']),
+    defaultVisible: new Set(['cyber', 'tv', 'conflict', 'cyclones', 'relief', 'iss']),
     tvChannelIds: new Set(TV_CHANNELS.map(channel => channel.id)),
   });
   APP_STORE.update('user', {
@@ -1911,15 +2027,8 @@ async function refreshSettings() {
 async function refreshProviderAttributions() {
   const container = $('provider-attributions');
   if (!container || PROVIDER_CATALOG_LOADED) return;
-  let body;
-  let status = 0;
-  try {
-    ({ body, status } = await fgetJSON('/api/providers'));
-  } catch {}
-  const items = Array.isArray(body?.items)
-    ? body.items.slice(0, 100).filter(item => item && typeof item === 'object')
-    : [];
-  if (status !== 200 || !items.length) {
+  const items = await loadProviderCatalog();
+  if (!items.length) {
     container.replaceChildren(el('div', 'empty', 'Source terms are temporarily unavailable.'));
     return;
   }
@@ -1958,6 +2067,39 @@ async function refreshProviderAttributions() {
     container.append(section);
   }
   PROVIDER_CATALOG_LOADED = true;
+}
+
+async function loadProviderCatalog() {
+  if (Array.isArray(PROVIDER_CATALOG_ITEMS)) return PROVIDER_CATALOG_ITEMS;
+  let body;
+  let status = 0;
+  try {
+    ({ body, status } = await fgetJSON('/api/providers'));
+  } catch {}
+  const items = status === 200 && Array.isArray(body?.items)
+    ? body.items.slice(0, 100).filter(item => item && typeof item === 'object')
+    : [];
+  // A transient startup failure must not become a session-long empty cache;
+  // Settings and the source manifest can retry on their next render.
+  if (items.length) {
+    PROVIDER_CATALOG_ITEMS = items;
+    updateSourceManifest(items);
+  }
+  return items;
+}
+
+function updateSourceManifest(items) {
+  if (!items.length) return;
+  const usable = items.filter(item => !String(item?.decision || '').startsWith('disabled-'));
+  const keyless = usable.filter(item => item?.auth === 'none').length;
+  const mission = $('mission-manifest');
+  if (mission) mission.textContent = `${keyless} keyless`;
+  const classification = $('classification-mark')?.querySelector('span');
+  if (classification) classification.textContent = `${usable.length} public sources`;
+}
+
+async function refreshSourceManifest() {
+  updateSourceManifest(await loadProviderCatalog());
 }
 
 async function saveKeys() {
@@ -2043,7 +2185,7 @@ async function shutdownApp() {
 
 async function loadInitialSettings() {
   // Defaults: focus panels on, internet-pulse + bitcoin off.
-  const SITREP_ON = new Set(['tv', 'conflict', 'cyclones', 'relief', 'iss']);
+  const SITREP_ON = new Set(['cyber', 'tv', 'conflict', 'cyclones', 'relief', 'iss']);
   try {
     const { body } = await fgetJSON('/api/settings');
     if (body) {
@@ -2112,6 +2254,7 @@ async function start() {
   wireStaticControls();
   await loadSession();
   await loadInitialSettings();
+  void refreshSourceManifest();
 
   let appConfig = {};
   try {
@@ -2206,7 +2349,7 @@ async function startStandardDashboard() {
   const standardRefreshes = [refreshQuakes, refreshConflictHotspots, refreshEonet,
    refreshFirms, refreshDefense, refreshWeather,
    refreshConflict, refreshGdacs, refreshCyclones, refreshRelief,
-   refreshSpaceWeather, refreshISS, refreshNews, refreshCrypto,
+   refreshSpaceWeather, refreshISS, refreshCyber, refreshNews, refreshCrypto,
    refreshForex];
   if (YAHOO_FINANCE_ENABLED) standardRefreshes.push(refreshCommodities);
   // Optional panels: only fetch if visible.
@@ -2233,6 +2376,7 @@ async function startStandardDashboard() {
   every(refreshCyclones,          600 * 1000);
   every(refreshRelief,            300 * 1000);
   every(refreshSpaceWeather,      900 * 1000);
+  every(refreshCyber,        6 * 60 * 60 * 1000);
   every(refreshBitcoin,            45 * 1000);
   every(refreshWiki,               10 * 1000);
   every(refreshGitHub,             45 * 1000);

@@ -1,9 +1,9 @@
 # Canonical Source Mappings
 
-This document is the field-level contract for Foglight's Phase 3 core
-normalizers. All adapters are side-effect free: a bounded response body enters,
-validated `Observation` objects and payload-safe drift diagnostics leave. The
-raw body is hashed but is not copied into SQLite.
+This document is the field-level contract for Foglight's Phase 3 core and
+bounded panel normalizers. All adapters are side-effect free: a bounded
+response body enters, validated `Observation` objects and payload-safe drift
+diagnostics leave. The raw body is hashed but is not copied into SQLite.
 
 ## Shared rules
 
@@ -37,6 +37,7 @@ raw body is hashed but is not copied into SQLite.
 | NOAA NDBC | stable station ID; item GUID retained as source-record metric | `marine_observation`; current station measurement with unknown CAP semantics | GUID observation time → event/source update; feed-generation `pubDate` is not treated as a station update | GeoRSS point | source units preserved for wind, wave, pressure, temperature and other labeled station fields; query-relative distance is excluded from canonical summary |
 | NOAA CO-OPS | stable station ID; station/time retained as source-record metric | `water_level`; latest station measurement with unknown CAP semantics | offset-less documented GMT row time → event/source update | metadata station point | meters relative to requested MLLW, QA and data flags, sigma; anomaly only when the same payload contains an explicit matching prediction |
 | NASA/JPL CNEOS | peak-brightness GMT date/time | `fireball`; completed low-frequency observation with no inferred emergency classification | documented offset-less GMT date → event; no publication/update time is invented | point only when all latitude/longitude magnitude and direction fields are present | radiated energy in 10^10 J, estimated impact energy in kt, optional peak-brightness altitude in km and reported entry velocity in km/s; signature v1.2 and the documented/live selected field sets are validated before positional indexing |
+| CISA KEV (panel only) | `cveID` | Stateless Standard-panel projection; deliberately excluded from the V2 scheduler, incident taxonomy, scoring, watches, and notifications until batch reconciliation exists | `dateAdded` remains a catalog-addition metric; `dueDate` remains the FCEB remediation deadline; no exploit event or per-record update time is inferred | null | vendor, product, vulnerability name, description, required action, ransomware-use label, CWE list, and CISA catalog link; output is bounded to 250 entries added in the newest 60 days |
 
 ## Verified upstream contracts
 
@@ -55,6 +56,9 @@ raw body is hashed but is not copied into SQLite.
 - [CO-OPS response fields](https://api.tidesandcurrents.noaa.gov/api/prod/responseHelp.html)
 - [NASA/JPL Fireball Data API](https://ssd-api.jpl.nasa.gov/doc/fireball.html)
 - [NASA/JPL SSD API fair-use policy](https://ssd-api.jpl.nasa.gov/doc/index.php)
+- [CISA Known Exploited Vulnerabilities Catalog](https://www.cisa.gov/known-exploited-vulnerabilities-catalog)
+- [CISA KEV JSON schema](https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities_schema.json)
+- [CISA KEV CC0 license](https://www.cisa.gov/sites/default/files/licenses/kev/license.txt)
 
 ReliefWeb's JSON API requires a pre-approved appname as of November 2025.
 Foglight therefore keeps the no-key RSS path for the out-of-box experience and

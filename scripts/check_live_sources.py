@@ -30,6 +30,7 @@ URLS = {
     "gdacs": "https://www.gdacs.org/gdacsapi/api/events/geteventlist/SEARCH",
     "openfema_declarations": "https://www.fema.gov/api/open/v2/DisasterDeclarationsSummaries?$orderby=declarationDate%20desc&$top=100",
     "nasa_jpl_fireballs": "https://ssd-api.jpl.nasa.gov/fireball.api?limit=20",
+    "cisa_kev": "https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json",
     "reliefweb_rss": "https://reliefweb.int/updates/rss.xml",
     "conflict_rss": "https://news.un.org/feed/subscribe/en/news/topic/peace-and-security/feed/rss.xml",
     "defense_rss": "https://www.defense.gov/DesktopModules/ArticleCS/RSS.ashx?ContentType=1&Site=945&max=1",
@@ -76,9 +77,9 @@ def check(
                   "content_type": content_type,
                   "latency_ms": round((time.perf_counter() - started) * 1000, 1)}
         if normalize_core:
-            from foglight_core.providers.canonical import CORE_CANONICAL_ADAPTERS
+            from foglight_core.providers.canonical import CANONICAL_ADAPTERS
 
-            adapter = CORE_CANONICAL_ADAPTERS.get(provider_id)
+            adapter = CANONICAL_ADAPTERS.get(provider_id)
             if adapter is not None:
                 if len(body) > max_bytes:
                     result.update(ok=False, normalization_error="body-cap-exceeded")
@@ -121,7 +122,7 @@ def main() -> None:
     parser.add_argument(
         "--normalize-core",
         action="store_true",
-        help="also run bounded Phase 3 normalizers and report payload-safe drift",
+        help="also run bounded core and panel normalizers and report payload-safe drift",
     )
     args = parser.parse_args()
     if not args.confirm_live:

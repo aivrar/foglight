@@ -4,7 +4,7 @@ import test from 'node:test';
 import { createApiClient } from '../../web/api.js';
 import {
   byId, elapsed, element, escapeHtml, formatUtcTime, safeHttpUrl,
-  runWithConcurrency, updateSourceFreshness,
+  latestKpValue, runWithConcurrency, updateSourceFreshness, validMapCoordinates,
 } from '../../web/core.js';
 import { createAppStore } from '../../web/store.js';
 import { createSettingsPatch, normalizeInitialSettings } from '../../web/settings.js';
@@ -63,6 +63,37 @@ test('source freshness tracks current sources instead of refresh attempts', () =
     live: 0, cached: 1, errored: 0,
   });
   assert.throws(() => updateSourceFreshness({}, 'usgs', 'live'), /must be a Map/);
+});
+
+test('space-weather Kp selection follows timestamps instead of payload order', () => {
+  assert.equal(latestKpValue([
+    { time_tag: '2026-08-30T03:00:00Z', Kp: '2.5' },
+    { time_tag: '2026-08-30T01:00:00Z', Kp: '7.0' },
+    { time_tag: 'not-a-time', Kp: '9.0' },
+  ]), 2.5);
+  assert.equal(latestKpValue([
+    ['time_tag', 'Kp'],
+    ['2026-08-30T03:00:00Z', '6.0'],
+    ['2026-08-30T01:00:00Z', '1.0'],
+  ]), 6);
+  assert.equal(latestKpValue([{ kp: '1.0' }, { Kp: null, kp: '4.5' }]), 4.5);
+  assert.equal(latestKpValue([null, 'invalid', { Kp: '' }, ['bad', 'nope']]), null);
+  assert.equal(latestKpValue(null), null);
+});
+
+test('map coordinates reject missing, nonnumeric, and out-of-range values', () => {
+  assert.deepEqual(validMapCoordinates('12.5', '-30.25'), [12.5, -30.25]);
+  assert.deepEqual(validMapCoordinates('22.9N', '79.9W'), [22.9, -79.9]);
+  assert.deepEqual(validMapCoordinates(-90, 180), [-90, 180]);
+  assert.deepEqual(validMapCoordinates(0, 0), [0, 0]);
+  assert.equal(validMapCoordinates(null, 0), null);
+  assert.equal(validMapCoordinates(0, undefined), null);
+  assert.equal(validMapCoordinates('', 0), null);
+  assert.equal(validMapCoordinates(false, 0), null);
+  assert.equal(validMapCoordinates('22.9W', '79.9N'), null);
+  assert.equal(validMapCoordinates(91, 0), null);
+  assert.equal(validMapCoordinates(0, -181), null);
+  assert.equal(validMapCoordinates(Number.POSITIVE_INFINITY, 0), null);
 });
 
 test('bounded task runner preserves order and caps concurrent refresh work', async () => {

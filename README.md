@@ -10,8 +10,8 @@
 
 **Foglight** is a zero-setup, local-first Windows dashboard for live public
 events. It brings severe weather, earthquakes, natural hazards, humanitarian
-updates, aviation and marine advisories, public signals, and live news into one
-fast desktop view.
+updates, aviation and marine advisories, known exploited vulnerabilities,
+public signals, and live news into one fast desktop view.
 
 The release is one portable **`Foglight.exe`**. No installer, account, cloud
 backend, or required API key. End users do not need Python, WSL, Docker, Git,
@@ -32,8 +32,9 @@ and a bundled offline world map.
 
 ### Standard
 
-The original high-density situation room: live map overlays, source rails,
-tickers, public-data panels, market context, and live news video.
+A high-density public-intelligence console: live map overlays, mission
+telemetry, source rails, tickers, cyber and hazard panels, market context, and
+live news video.
 
 ![Foglight Standard dashboard showing the global map, live feeds, and news video](docs/screenshots/standard.PNG)
 
@@ -56,7 +57,8 @@ Foglight turns public feeds into three purpose-built views:
 - **Command** compresses Overview for wall displays and long-running monitoring.
 - The bundled Natural Earth base map, cached history, settings, watch regions,
   and pins continue to work when external feeds are unavailable.
-- Fourteen canonical public-data providers work without accounts or keys. NASA
+- Fourteen persistent canonical public-data providers work without accounts or
+  keys. CISA KEV is a separate bounded, stateless Standard-panel source; NASA
   FIRMS remains an optional extra layer for users who already have a key.
 
 ## Why It Exists
@@ -77,6 +79,7 @@ humanitarian-awareness screen, wall display, or always-on desktop dashboard.
 | Hazard monitoring | USGS earthquakes, volcanoes, NOAA cyclones, GDACS disasters, EONET natural events, NWS alerts, tsunami feeds, and NOAA SIGMETs |
 | Current events and news | UN, DW, France 24, BBC, NPR, Al Jazeera, and configurable RSS feeds |
 | Humanitarian | ReliefWeb situation reports and update stream |
+| Cyber watch | Stateless Standard panel for CISA Known Exploited Vulnerabilities added in the last 60 days, including federal remediation deadlines and reported ransomware use |
 | Markets | Bitcoin mempool/fees/blocks, crypto tickers, forex, and conditional commodity futures |
 | Internet pulse | GitHub public events, SEC EDGAR filings, Wikipedia edits, Hacker News, Reddit |
 | Live TV | Major YouTube live news embeds, default channel setting, external fallback link |

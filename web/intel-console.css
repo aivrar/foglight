@@ -1,0 +1,1294 @@
+/* Foglight intelligence-console visual system.
+ * The aesthetic is fictional and intentionally carries no government marks.
+ * Every collection label describes public, locally processed source material.
+ */
+
+:root {
+  --bg: #020604;
+  --bg-chrome: #040a07;
+  --bg-raised: #07110d;
+  --bg-active: #0b1b14;
+  --border: #173126;
+  --border-hi: #2c5c45;
+  --text: #d8e8df;
+  --text-dim: #82998d;
+  --text-dimmer: #70877c;
+  --accent: #4bc783;
+  --accent-hi: #83e5aa;
+  --good: #55d98d;
+  --warn: #e3b65f;
+  --hot: #f3695f;
+  --news: #63c6b0;
+  --iss: #75d9c3;
+  --storm: #69aee8;
+}
+
+html,
+body {
+  background: #020604;
+  color: var(--text);
+}
+
+body {
+  background-image:
+    linear-gradient(rgba(89, 197, 135, .022) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(89, 197, 135, .018) 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+
+body::after {
+  background: repeating-linear-gradient(
+    180deg,
+    rgba(255, 255, 255, .012) 0,
+    rgba(255, 255, 255, .012) 1px,
+    transparent 1px,
+    transparent 4px
+  );
+  content: "";
+  inset: 0;
+  opacity: .34;
+  pointer-events: none;
+  position: fixed;
+  z-index: 10000;
+}
+
+button,
+input,
+select,
+textarea {
+  font-family: "JetBrains Mono", "Cascadia Mono", Consolas, monospace;
+}
+
+/* ---------- command chrome ---------- */
+
+#topbar {
+  background:
+    linear-gradient(90deg, rgba(72, 188, 122, .075), transparent 28%),
+    linear-gradient(180deg, #07100c, #030705);
+  border-bottom: 1px solid #28513d;
+  box-shadow: 0 6px 22px rgba(0, 0, 0, .42);
+  gap: 12px;
+  height: 44px;
+  padding: 0 12px;
+}
+
+#brand {
+  gap: 9px;
+  min-width: max-content;
+}
+
+#brand .lamp {
+  background: var(--accent-hi);
+  border: 1px solid #baffd2;
+  border-radius: 1px;
+  box-shadow: 0 0 5px var(--accent), 0 0 16px rgba(75, 199, 131, .45);
+  height: 12px;
+  position: relative;
+  transform: rotate(45deg);
+  width: 12px;
+}
+
+#brand .lamp::after {
+  border: 1px solid rgba(131, 229, 170, .35);
+  content: "";
+  inset: -4px;
+  position: absolute;
+}
+
+.brand-lockup {
+  display: grid;
+  gap: 2px;
+}
+
+.brand-word {
+  color: #f1faf5;
+  font: 700 12px/1 "JetBrains Mono", "Cascadia Mono", Consolas, monospace;
+  letter-spacing: .22em;
+}
+
+.brand-sub {
+  color: #739184;
+  font: 600 7px/1 "JetBrains Mono", "Cascadia Mono", Consolas, monospace;
+  letter-spacing: .2em;
+}
+
+#classification-mark {
+  align-items: stretch;
+  border-left: 1px solid #294b3b;
+  display: flex;
+  font: 700 8px/1 "JetBrains Mono", "Cascadia Mono", Consolas, monospace;
+  letter-spacing: .12em;
+  margin-left: 3px;
+  padding-left: 12px;
+  text-transform: uppercase;
+}
+
+#classification-mark span,
+#classification-mark b {
+  align-items: center;
+  display: flex;
+  padding: 5px 7px;
+}
+
+#classification-mark span {
+  background: #0a1711;
+  border: 1px solid #244334;
+  color: #78968a;
+}
+
+#classification-mark b {
+  background: #bfe9cd;
+  border: 1px solid #bfe9cd;
+  color: #07100b;
+}
+
+#display-modes {
+  background: #030806;
+  border-color: #254b39;
+  border-radius: 0;
+  padding: 2px;
+}
+
+#display-modes button {
+  border-radius: 0;
+  color: #789084;
+  letter-spacing: .1em;
+  min-height: 26px;
+  padding: 0 9px;
+}
+
+#display-modes button[aria-pressed="true"] {
+  background: #173c2b;
+  box-shadow: inset 0 -2px 0 var(--accent-hi);
+  color: #e9f8ef;
+}
+
+.top-stat {
+  border-left: 1px solid #1b382a;
+  padding-left: 10px;
+}
+
+.top-stat .dot {
+  border-radius: 1px;
+  box-shadow: 0 0 7px currentColor;
+}
+
+.top-clock {
+  color: #9eb6aa;
+}
+
+.tbtn {
+  border-color: #1c3b2d;
+  border-radius: 0;
+  color: #8aa095;
+  letter-spacing: .1em;
+}
+
+.tbtn:hover {
+  background: #10241a;
+  border-color: #3d7559;
+}
+
+#statusbar {
+  background: #030806;
+  border-bottom-color: #183729;
+  gap: 0;
+  height: 30px;
+  padding: 0 10px;
+  top: 44px;
+}
+
+#statusbar::before {
+  color: #507064;
+  content: "COLLECTION / LIVE";
+  flex: 0 0 auto;
+  font: 700 8px/1 "JetBrains Mono", "Cascadia Mono", Consolas, monospace;
+  letter-spacing: .15em;
+  padding: 0 12px 0 2px;
+}
+
+#statusbar .stat {
+  border-left: 1px solid #10261c;
+  border-right: 0;
+  height: 100%;
+  padding: 0 11px;
+}
+
+#statusbar .stat .lab {
+  color: #70877c;
+  font-size: 8.5px;
+  letter-spacing: .08em;
+}
+
+#statusbar .stat .val {
+  color: #dcebe3;
+}
+
+#statusbar #zulu-strip {
+  border-left: 1px solid #173126;
+  padding-left: 12px;
+}
+
+#theaterbar {
+  background: rgba(4, 10, 7, .98);
+  border-bottom-color: #244535;
+  height: 34px;
+  padding: 0 10px;
+  top: 74px;
+}
+
+#theaterbar .t-lab {
+  color: #6a877a;
+}
+
+#theaterbar .t-btn,
+#theaterbar .t-action {
+  background: transparent;
+  border-color: #1d3b2d;
+  border-radius: 0;
+  color: #7c9488;
+  padding: 5px 9px;
+}
+
+#theaterbar .t-btn:hover {
+  background: #0c1d15;
+  border-color: #3b6d54;
+}
+
+#theaterbar .t-btn.active {
+  background: #143b29;
+  border-color: #65c68e;
+  box-shadow: inset 0 -2px 0 #80e1a8;
+  color: #ecfff3;
+}
+
+#theaterbar .t-action {
+  background: rgba(243, 105, 95, .07);
+  border-color: rgba(243, 105, 95, .34);
+}
+
+#breaking-banner {
+  top: 108px;
+}
+
+.tickerband {
+  background: rgba(3, 8, 6, .98);
+  border-bottom-color: #173126;
+}
+
+#ticker-news {
+  height: 26px;
+  top: 108px;
+}
+
+#ticker-crypto {
+  height: 22px;
+  top: 134px;
+}
+
+.ti-news .src {
+  color: #66d2a0;
+}
+
+.ti-news .sep {
+  background: #345f4a;
+  border-radius: 0;
+  transform: rotate(45deg);
+}
+
+/* ---------- overview / command picture ---------- */
+
+body.mode-overview #overview-surface,
+body.mode-command #overview-surface {
+  background:
+    linear-gradient(90deg, rgba(71, 182, 118, .035) 1px, transparent 1px),
+    linear-gradient(rgba(71, 182, 118, .03) 1px, transparent 1px),
+    radial-gradient(circle at 12% -10%, rgba(55, 160, 104, .14), transparent 35rem),
+    #030806;
+  background-size: 38px 38px, 38px 38px, auto, auto;
+  gap: 12px;
+  grid-template-columns: minmax(0, 1.65fr) minmax(300px, .72fr);
+  grid-template-rows: auto auto auto auto auto auto auto;
+  padding: 20px clamp(16px, 2.2vw, 34px) 38px;
+  top: 44px;
+}
+
+.overview-header {
+  border-bottom: 1px solid #244535;
+  grid-row: 1;
+  padding: 2px 2px 14px;
+  position: relative;
+}
+
+.overview-header::after {
+  background: #70d699;
+  bottom: -1px;
+  content: "";
+  height: 2px;
+  left: 0;
+  position: absolute;
+  width: clamp(90px, 14vw, 210px);
+}
+
+.overview-eyebrow {
+  color: #6f9d86;
+  letter-spacing: .19em;
+}
+
+.overview-header h1,
+.overview-section-heading h2 {
+  color: #edf7f1;
+  font-family: "JetBrains Mono", "Cascadia Mono", Consolas, monospace;
+  font-weight: 620;
+}
+
+.overview-header h1 {
+  font-size: clamp(23px, 2.45vw, 36px);
+  letter-spacing: .035em;
+  text-transform: uppercase;
+}
+
+.overview-header > div > p:last-child {
+  color: #8da398;
+  font-family: "JetBrains Mono", "Cascadia Mono", Consolas, monospace;
+  font-size: 10px;
+  letter-spacing: .035em;
+  margin-top: 8px;
+}
+
+#overview-health,
+#overview-state-title {
+  background: #040a07;
+  border-color: #2c5140;
+  border-radius: 0;
+  padding: 7px 10px;
+  text-transform: uppercase;
+}
+
+#overview-health[data-status="current"] {
+  background: rgba(44, 121, 78, .12);
+  border-color: #357b57;
+}
+
+.overview-change {
+  background: linear-gradient(90deg, rgba(62, 170, 108, .1), rgba(5, 14, 9, .86));
+  border-color: #244a37;
+  border-left-color: #66d592;
+  border-radius: 0;
+  grid-row: 2;
+  min-height: 40px;
+  padding: 9px 12px;
+}
+
+.overview-change h2 {
+  color: #8ce3ad;
+  font: 700 9px/1 "JetBrains Mono", "Cascadia Mono", Consolas, monospace;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+}
+
+.overview-change p {
+  color: #a6b9af;
+  font-family: "JetBrains Mono", "Cascadia Mono", Consolas, monospace;
+  font-size: 10px;
+}
+
+.overview-metrics {
+  display: grid;
+  gap: 1px;
+  grid-column: 1 / -1;
+  grid-row: 3;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  min-width: 0;
+}
+
+.overview-metrics article {
+  background:
+    linear-gradient(135deg, rgba(78, 194, 127, .075), transparent 55%),
+    #050d09;
+  border: 1px solid #1d3e2e;
+  min-width: 0;
+  padding: 10px 12px 9px;
+  position: relative;
+}
+
+.overview-metrics article::before {
+  border-left: 7px solid #67d594;
+  border-top: 7px solid transparent;
+  content: "";
+  left: 0;
+  position: absolute;
+  top: 0;
+}
+
+.overview-metrics span,
+.overview-metrics small,
+.overview-metrics strong {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.overview-metrics span {
+  color: #668174;
+  font: 700 8px/1 "JetBrains Mono", "Cascadia Mono", Consolas, monospace;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+
+.overview-metrics strong {
+  color: #e4f7eb;
+  font: 600 22px/1.15 "JetBrains Mono", "Cascadia Mono", Consolas, monospace;
+  margin-top: 6px;
+}
+
+.overview-metrics small {
+  color: #70877c;
+  font: 8px/1.2 "JetBrains Mono", "Cascadia Mono", Consolas, monospace;
+  letter-spacing: .06em;
+  margin-top: 3px;
+  text-transform: uppercase;
+}
+
+.watch-center {
+  background: #040b08;
+  border-color: #1c3c2d;
+  border-radius: 0;
+  grid-row: 4;
+  padding: 10px 12px;
+}
+
+.watch-center-heading {
+  min-height: 31px;
+}
+
+.watch-center-heading h2 {
+  font-family: "JetBrains Mono", "Cascadia Mono", Consolas, monospace;
+  font-size: 14px;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+
+.watch-search-panel,
+.watch-settings-panel,
+.wall-controls,
+.notification-center {
+  background: #030806;
+  border-color: #1d3c2e;
+  border-radius: 0;
+}
+
+.watch-center input,
+.watch-center select,
+.watch-center button {
+  background: #08150f;
+  border-color: #315f49;
+  border-radius: 0;
+}
+
+.overview-filters {
+  gap: 5px;
+  grid-row: 5;
+}
+
+.overview-filters::before {
+  align-items: center;
+  color: #567166;
+  content: "INTELLIGENCE LANES";
+  display: flex;
+  font: 700 8px/1 "JetBrains Mono", "Cascadia Mono", Consolas, monospace;
+  letter-spacing: .14em;
+  margin-right: 5px;
+}
+
+.overview-filters button {
+  background: #040b08;
+  border-color: #254a38;
+  border-radius: 0;
+  color: #829a8e;
+  font: 600 9px/1 "JetBrains Mono", "Cascadia Mono", Consolas, monospace;
+  letter-spacing: .04em;
+  min-height: 30px;
+  padding: 5px 10px;
+  text-transform: uppercase;
+}
+
+.overview-filters button[aria-pressed="true"] {
+  background: #153724;
+  border-color: #65ca8e;
+  box-shadow: inset 0 -2px 0 #84e5aa;
+}
+
+.overview-now {
+  grid-row: 6;
+}
+
+.overview-section-heading {
+  border-bottom: 1px solid #1b392b;
+  margin-bottom: 7px;
+  padding: 0 0 8px;
+}
+
+.overview-section-heading h2 {
+  font-size: 17px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+#overview-count,
+#overview-map-count {
+  color: #6d877a;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+
+#overview-now-list {
+  gap: 6px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.overview-incident {
+  background:
+    linear-gradient(105deg, color-mix(in srgb, var(--severity) 6%, transparent), transparent 46%),
+    #050c09;
+  border-color: #1b382b;
+  border-left-width: 3px;
+  border-radius: 0;
+  position: relative;
+}
+
+.overview-incident::after {
+  border-right: 8px solid #234b38;
+  border-top: 8px solid transparent;
+  bottom: 0;
+  content: "";
+  opacity: .55;
+  position: absolute;
+  right: 0;
+}
+
+.overview-incident:hover {
+  background-color: #08140e;
+  border-color: #3e7257;
+}
+
+.overview-incident.is-selected {
+  border-color: #74dfa0;
+  box-shadow: 0 0 0 1px rgba(116, 223, 160, .18), inset 0 0 26px rgba(77, 195, 126, .07);
+}
+
+.overview-incident-summary {
+  gap: 9px;
+  grid-template-columns: 34px minmax(0, 1fr) 45px;
+  min-height: 66px;
+  padding: 9px 10px 6px;
+}
+
+.kind-marker {
+  color: #d8f4e4;
+  height: 28px;
+  width: 28px;
+}
+
+.kind-marker::before {
+  border-color: #69b98b;
+}
+
+.incident-kicker {
+  color: #668277;
+  font-size: 8px;
+  letter-spacing: .08em;
+}
+
+.incident-title {
+  color: #e3eee7;
+  font-family: "JetBrains Mono", "Cascadia Mono", Consolas, monospace;
+  font-size: 11.5px;
+  letter-spacing: -.01em;
+}
+
+.incident-summary {
+  color: #82968c;
+  font-size: 9.5px;
+}
+
+.incident-score strong {
+  color: #dff8e8;
+  font-size: 17px;
+}
+
+.incident-score span {
+  color: #5e776b;
+  font-size: 7px;
+}
+
+.incident-meta {
+  color: #71887d;
+  font: 8.5px/1.35 "JetBrains Mono", "Cascadia Mono", Consolas, monospace;
+  gap: 3px 10px;
+  padding: 0 9px 8px 53px;
+}
+
+.incident-meta span::before {
+  color: #3c5b4c;
+  content: "/";
+  margin-right: 5px;
+}
+
+.incident-evidence {
+  background: #030806;
+  border-top-color: #1d3c2d;
+  color: #9caf9f;
+  font-family: "JetBrains Mono", "Cascadia Mono", Consolas, monospace;
+  font-size: 9px;
+  padding: 9px 11px 11px 53px;
+}
+
+.overview-map-panel {
+  background: #030906;
+  border-color: #234936;
+  border-radius: 0;
+  grid-row: 6;
+  overflow: visible;
+  padding: 10px;
+  position: relative;
+}
+
+.overview-map-panel::before,
+.overview-map-panel::after {
+  content: "";
+  pointer-events: none;
+  position: absolute;
+  z-index: 2;
+}
+
+.overview-map-panel::before {
+  border-left: 12px solid #67c98e;
+  border-top: 12px solid transparent;
+  left: -1px;
+  top: -1px;
+}
+
+.overview-map-panel::after {
+  border-bottom: 12px solid transparent;
+  border-right: 12px solid #315f49;
+  bottom: -1px;
+  right: -1px;
+}
+
+#overview-map {
+  background: #020604;
+  border-color: #315d48;
+  border-radius: 0;
+  height: clamp(340px, 49vh, 560px);
+}
+
+.foglight-offline-map,
+#overview-map .leaflet-container {
+  background: #020604;
+}
+
+.overview-map-controls,
+.overview-map-note {
+  color: #6e877b;
+  font-family: "JetBrains Mono", "Cascadia Mono", Consolas, monospace;
+}
+
+.overview-pin-form {
+  border-top-color: #1f4231;
+}
+
+.overview-pin-form input,
+.overview-pin-form button {
+  background: #07140d;
+  border-color: #315f49;
+  border-radius: 0;
+}
+
+.overview-catalog,
+.overview-sources {
+  background: #040b08;
+  border-color: #1e4030;
+  border-radius: 0;
+  grid-row: 7;
+}
+
+.overview-catalog summary,
+.overview-sources summary {
+  font-family: "JetBrains Mono", "Cascadia Mono", Consolas, monospace;
+  font-size: 10px;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+}
+
+#overview-surface[data-density="command"] {
+  grid-template-columns: minmax(0, 1fr) 300px;
+  padding-top: 14px;
+}
+
+#overview-surface[data-density="command"] #overview-now-list {
+  gap: 4px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+/* ---------- standard operations wall ---------- */
+
+#main {
+  background: #173126;
+  grid-template-columns: clamp(260px, 19vw, 310px) minmax(360px, 1fr) clamp(330px, 24vw, 400px);
+  top: 156px;
+}
+
+#col-left,
+#col-right,
+#pane-bottom {
+  background: #173126;
+}
+
+.panel {
+  background:
+    linear-gradient(rgba(79, 168, 116, .018) 1px, transparent 1px),
+    #020604;
+  background-size: 100% 20px;
+}
+
+.panel::after {
+  border-bottom: 8px solid transparent;
+  border-right: 8px solid #28513d;
+  bottom: 0;
+  content: "";
+  opacity: .7;
+  pointer-events: none;
+  position: absolute;
+  right: 0;
+}
+
+.panel header {
+  background: linear-gradient(90deg, #0b1b13, #030806 72%);
+  border-bottom-color: #1d3e2f;
+  box-shadow: inset 3px 0 0 #4ebc7c;
+  gap: 7px;
+  min-height: 29px;
+  padding: 6px 9px;
+}
+
+.panel header .title {
+  color: #cfe1d7;
+  font-size: 9.5px;
+  letter-spacing: .13em;
+}
+
+.panel header .badge {
+  background: #07120d;
+  border: 1px solid #1e3d2f;
+  border-radius: 0;
+  color: #758c81;
+  padding: 2px 5px;
+}
+
+.panel header .badge.live {
+  background: rgba(61, 214, 140, .08);
+  border-color: #2f6c4d;
+}
+
+.icon {
+  background: transparent !important;
+  border: 1px solid currentColor;
+  border-radius: 0;
+  font-size: 8px;
+  height: 15px;
+}
+
+.icon.cyber {
+  color: #70dca1;
+}
+
+.stream .kev-row {
+  align-items: center;
+  display: grid;
+  gap: 7px;
+  grid-template-columns: 68px 112px minmax(0, 1fr) 110px;
+  min-height: 35px;
+  padding: 5px 9px;
+}
+
+.stream .kev-row .who {
+  color: #75dca0;
+  font-weight: 700;
+}
+
+.stream .kev-row .ttl {
+  display: grid;
+  line-height: 1.2;
+}
+
+.stream .kev-row .ttl b {
+  font-size: 10.5px;
+  font-weight: 550;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.stream .kev-row .ttl small {
+  color: #617b6e;
+  font: 8.5px/1.2 "JetBrains Mono", "Cascadia Mono", Consolas, monospace;
+  margin-top: 3px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.kev-due {
+  border: 1px solid #315b46;
+  color: #839b8f;
+  font: 700 8px/1 "JetBrains Mono", "Cascadia Mono", Consolas, monospace;
+  padding: 4px 5px;
+  text-align: center;
+}
+
+.kev-ransom {
+  background: linear-gradient(90deg, rgba(243, 105, 95, .11), transparent 70%);
+}
+
+.kev-ransom .kev-due {
+  border-color: #9a4b43;
+  color: #ff8d82;
+}
+
+.row {
+  border-bottom-color: rgba(28, 59, 45, .72);
+}
+
+.row:hover,
+.stream .ln:hover {
+  background: rgba(62, 154, 101, .075);
+}
+
+.panel button.row {
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid rgba(28, 59, 45, .72);
+  color: inherit;
+  text-align: left;
+  width: 100%;
+}
+
+.panel a.row,
+.panel a.row:hover {
+  text-decoration: none;
+}
+
+.severity-chip {
+  border: 1px solid currentColor;
+  font-size: 8px !important;
+  letter-spacing: .06em;
+  min-width: 29px;
+  padding: 3px 4px;
+  text-align: center;
+}
+
+.severity-extreme { color: #ff7a70 !important; }
+.severity-severe { color: #f49a66 !important; }
+.severity-moderate { color: #e3c16d !important; }
+.severity-minor { color: #75bdec !important; }
+.severity-unknown { color: #82998d !important; }
+
+#statusbar .stat .val.err {
+  color: var(--hot);
+}
+
+.row .label .title,
+.stream .ln .ttl {
+  color: #cbdcd3;
+}
+
+.row .label .sub,
+.row .when,
+.stream .ln .t {
+  color: #667d72;
+}
+
+#pane-map {
+  background: #010402;
+  isolation: isolate;
+}
+
+#pane-map::before,
+#pane-map::after {
+  content: "";
+  opacity: .3;
+  pointer-events: none;
+  position: absolute;
+  z-index: 999;
+}
+
+#pane-map::before {
+  border-left: 1px dashed #4ca877;
+  bottom: 12%;
+  left: 50%;
+  top: 12%;
+}
+
+#pane-map::after {
+  border-top: 1px dashed #4ca877;
+  left: 12%;
+  right: 12%;
+  top: 50%;
+}
+
+#map,
+.leaflet-container {
+  background: #010402 !important;
+}
+
+#mission-ribbon {
+  display: grid;
+  gap: 1px;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  left: 52px;
+  pointer-events: none;
+  position: absolute;
+  right: 8px;
+  top: 8px;
+  z-index: 1001;
+}
+
+.mission-cell {
+  backdrop-filter: blur(8px);
+  background: rgba(3, 10, 6, .88);
+  border: 1px solid rgba(39, 83, 61, .9);
+  min-width: 0;
+  padding: 6px 7px 5px;
+}
+
+.mission-cell span,
+.mission-cell strong {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mission-cell span {
+  color: #5f7a6d;
+  font: 700 7px/1 "JetBrains Mono", "Cascadia Mono", Consolas, monospace;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+}
+
+.mission-cell strong {
+  color: #cfe7d9;
+  font: 650 9px/1.2 "JetBrains Mono", "Cascadia Mono", Consolas, monospace;
+  letter-spacing: .035em;
+  margin-top: 4px;
+  text-transform: uppercase;
+}
+
+.mission-primary {
+  border-color: #4da979;
+  box-shadow: inset 2px 0 0 #73d99a;
+}
+
+.mission-primary strong {
+  color: #80e3a7;
+}
+
+#map-legend,
+#iss-readout,
+#map-status,
+#map-coord {
+  backdrop-filter: blur(7px);
+  background: rgba(2, 8, 4, .88);
+  border-color: #244d39;
+  border-radius: 0;
+}
+
+#map-legend {
+  color: #789184;
+}
+
+#iss-readout {
+  top: 58px;
+}
+
+#map-status {
+  top: 84px;
+}
+
+#map-coord {
+  top: 110px;
+}
+
+.leaflet-control-attribution {
+  background: rgba(2, 7, 4, .88) !important;
+  color: #698075 !important;
+}
+
+.leaflet-control-attribution a,
+.leaflet-popup-content a {
+  color: #70d89b !important;
+}
+
+.leaflet-popup-content-wrapper,
+.leaflet-popup-tip {
+  background: #06100b !important;
+  border-color: #2d5d46;
+}
+
+#optional-cta {
+  background:
+    linear-gradient(90deg, rgba(67, 170, 109, .06), transparent 45%),
+    #030806;
+  border: 0;
+  border-top: 1px dashed #28503c;
+  color: #70877c;
+  min-height: 42px;
+}
+
+#tv-overlay {
+  border: 0;
+  padding: 0;
+  width: 100%;
+}
+
+#tv-overlay[hidden] {
+  display: none !important;
+}
+
+#optional-cta .pill {
+  border-color: #2e5a44;
+  border-radius: 0;
+}
+
+#fee-summary {
+  background: #020604;
+}
+
+/* ---------- secondary surfaces ---------- */
+
+#pane-settings {
+  background:
+    linear-gradient(90deg, rgba(69, 173, 112, .035) 1px, transparent 1px),
+    #030806;
+  background-size: 32px 32px;
+  top: 44px;
+}
+
+#settings-close {
+  border-radius: 0;
+  top: 52px;
+}
+
+.settings-section {
+  background: #050d09;
+  border-color: #224735;
+  border-radius: 0;
+}
+
+.settings-section h2,
+#settings-title {
+  font-family: "JetBrains Mono", "Cascadia Mono", Consolas, monospace;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+}
+
+.modal,
+#alert-drawer {
+  background: #050d09;
+  border-color: #32664c;
+  border-radius: 0;
+}
+
+button:focus-visible,
+a:focus-visible,
+summary:focus-visible,
+[tabindex]:focus-visible {
+  outline-color: #83e5aa;
+}
+
+@media (max-width: 1180px) {
+  #classification-mark {
+    display: none;
+  }
+
+  #overview-now-list,
+  #overview-surface[data-density="command"] #overview-now-list {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .overview-metrics {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  #mission-ribbon {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  #iss-readout {
+    top: 98px;
+  }
+
+  #map-status {
+    top: 124px;
+  }
+
+  #map-coord {
+    top: 150px;
+  }
+}
+
+@media (max-width: 900px) {
+  #topbar {
+    height: 44px;
+  }
+
+  #statusbar {
+    top: 44px;
+  }
+
+  #theaterbar {
+    top: 74px;
+  }
+
+  #main {
+    grid-template-columns: minmax(0, 1fr);
+    top: 156px;
+  }
+
+  body.mode-overview #overview-surface,
+  body.mode-command #overview-surface {
+    top: 44px;
+  }
+
+  #statusbar::before {
+    display: none;
+  }
+
+  #statusbar .stat {
+    padding: 0 10px;
+  }
+}
+
+@media (max-width: 820px) {
+  body.mode-overview #overview-surface,
+  body.mode-command #overview-surface {
+    padding-top: 14px;
+  }
+
+  .overview-metrics {
+    margin: 12px 0;
+  }
+
+  .overview-filters::before {
+    display: none;
+  }
+
+  .overview-map-panel,
+  .overview-catalog,
+  .overview-sources {
+    margin-top: 12px;
+  }
+}
+
+@media (max-width: 620px) {
+  .brand-sub {
+    display: none;
+  }
+
+  #brand .lamp {
+    height: 9px;
+    width: 9px;
+  }
+
+  #display-modes button {
+    padding: 0 5px;
+  }
+
+  .overview-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .overview-metrics article {
+    padding: 8px 9px;
+  }
+
+  .overview-metrics strong {
+    font-size: 18px;
+  }
+
+  #mission-ribbon {
+    left: 44px;
+  }
+}
+
+@media (max-width: 520px) {
+  #topbar {
+    gap: 7px;
+    padding: 0 7px;
+  }
+
+  body.mode-overview #brand,
+  body.mode-command #brand {
+    display: flex;
+  }
+
+  .brand-word {
+    font-size: 9px;
+    letter-spacing: .12em;
+  }
+
+  #top-actions .danger {
+    display: none;
+  }
+
+  .overview-header h1 {
+    font-size: 20px;
+  }
+
+  .overview-status-cluster {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, auto));
+  }
+
+  #overview-now-list {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  #mission-ribbon {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    left: 42px;
+  }
+
+  .mission-cell:nth-child(n+5) {
+    display: none;
+  }
+
+  #iss-readout {
+    top: 98px;
+  }
+
+  #map-status {
+    top: 124px;
+  }
+
+  #map-coord {
+    top: 150px;
+  }
+
+  #pane-settings {
+    top: 44px;
+  }
+
+  #settings-close {
+    top: 52px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body::after {
+    display: none;
+  }
+}

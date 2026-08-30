@@ -18,6 +18,7 @@ rate limits.
 | NOAA NDBC | Nearby-observation GeoRSS | At most six deduplicated marine contexts, every five minutes |
 | NOAA CO-OPS | Tides and Currents `date=latest` Data API | At most six deduplicated coastal MLLW stations, every five minutes |
 | NASA/JPL CNEOS | SSD Fireball Data API v1.2 | Most recent 20 peak-brightness records, one request every six hours |
+| CISA KEV | Known Exploited Vulnerabilities JSON catalog | Stateless Standard panel; at most 250 entries added in the newest 60 days, cached for six hours |
 | NASA EONET | `eonet.gsfc.nasa.gov` | Natural event overlay |
 | GDACS | `gdacs.org/gdacsapi` GeoJSON | Disaster alerts |
 | FEMA OpenFEMA | `fema.gov/api/open/v1` | Official disaster-declaration context |
@@ -65,10 +66,12 @@ adapter. `config/data_taxonomy.v1.json` records retention and UI lanes.
 
 This is the public release contract from the registry. Cadence is the earliest
 normal repeat interval, not a promise that a provider will answer on schedule.
-The scheduler permits one in-flight job per provider, uses at most four workers
-overall, honors `Retry-After`, adds jitter, persists validators, and applies
-exponential failure backoff plus a circuit break. Unless a row says otherwise,
-the timeout is 15 seconds and the body cap is 2 MiB.
+The V2 scheduler permits one in-flight job per core provider, uses at most four
+workers overall, honors `Retry-After`, adds jitter, persists validators, and
+applies exponential failure backoff plus a circuit break. CISA KEV is a
+panel-triggered, cache-bounded exception and is not persisted as a V2 incident.
+Unless a row says otherwise, the timeout is 15 seconds and the body cap is 2
+MiB.
 
 | Provider ID | Poll cadence | Body cap | Release label |
 |---|---:|---:|---|
@@ -85,6 +88,7 @@ the timeout is 15 seconds and the body cap is 2 MiB.
 | `ndbc_observations` | 5 min | 600 KiB | contextual; at most 6 URLs |
 | `noaa_coops_water_levels` | 5 min | 256 KiB | contextual; at most 6 URLs |
 | `nasa_jpl_fireballs` | 6 hours | 128 KiB | low-frequency observation |
+| `cisa_kev` | 6 hours | 3 MiB | stateless panel; CC0 known-exploited-vulnerability catalog |
 | `reliefweb_rss` | 5 min | 2 MiB | primary optional |
 | `conflict_rss` | 4 min | 2 MiB | supplemental media context |
 | `defense_rss` | 10 min | 2 MiB | supplemental media context |
@@ -124,11 +128,17 @@ retention ranges from 1 to 365 days as published in
   signals remain visibly distinct. Foglight does not predict events, confirm
   media claims, replace official warnings, or infer disaster onset from an
   administrative declaration.
+- CISA KEV inclusion means CISA has evidence that a vulnerability was exploited
+  in the wild. Foglight does not infer severity, urgency, exploit timing, or
+  affected deployments. A KEV due date is the required federal civilian
+  executive branch remediation deadline, not a forecast or universal deadline.
+  KEV entries are not added to V2 incidents, searches, watches, or notifications.
 
 The opt-in `scripts/check_live_sources.py --confirm-live --normalize-core`
-diagnostic also runs the bounded core normalizers and reports missing/unknown
-field names without printing response bodies. It is intentionally not a CI
-gate because upstream availability is outside Foglight's control.
+diagnostic also runs the bounded core and panel normalizers and reports
+missing/unknown field names without printing response bodies. It is
+intentionally not a CI gate because upstream availability is outside
+Foglight's control.
 
 ## Conditional Sources
 

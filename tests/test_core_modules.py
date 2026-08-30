@@ -114,10 +114,10 @@ def test_v1_profile_upgrade_preserves_every_supported_user_preference(tmp_path):
     })
 
     for field in (
-        "keys", "audio", "panels", "tv_channel", "watchlist", "annotations",
-        "rss_feeds",
+        "keys", "audio", "tv_channel", "watchlist", "annotations", "rss_feeds",
     ):
         assert upgraded[field] == legacy[field]
+    assert upgraded["panels"] == {**legacy["panels"], "cyber": True}
     assert upgraded["display_mode"] == "overview"
     assert upgraded["first_run_done"] is True
     assert upgraded["wall_display"] == {"interval_seconds": 60}
@@ -155,6 +155,7 @@ def test_settings_sanitizer_rejects_wrong_types_and_clamps_known_values():
     }
     assert DEFAULT_SETTINGS["keys"]["nasa_firms"] == ""
     assert DEFAULT_SETTINGS["display_mode"] == "overview"
+    assert DEFAULT_SETTINGS["panels"]["cyber"] is True
     assert sanitize_settings_patch({"display_mode": "standard"}) == {
         "display_mode": "standard"
     }
@@ -241,6 +242,7 @@ def test_notification_kind_allow_list_tracks_the_canonical_event_taxonomy():
 
     assert WATCH_KINDS == {kind.value for kind in EventKind}
     assert "aviation_hazard" in DEFAULT_SETTINGS["notifications"]["kinds"]
+    assert "cyber_vulnerability" not in DEFAULT_SETTINGS["notifications"]["kinds"]
 
 
 def test_phase8_settings_reject_excessive_or_invalid_watch_geometry():

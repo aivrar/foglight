@@ -249,12 +249,51 @@ def test_public_provider_catalog_is_bounded_attributed_and_secret_free(local_ser
     providers = {item["id"]: item for item in payload["items"]}
     assert providers["usgs_earthquakes"]["attribution"] == "USGS"
     assert providers["usgs_earthquakes"]["overview"] is True
+    assert providers["cisa_kev"]["overview"] is False
     assert providers["nasa_firms"]["overview"] is False
     assert providers["nasa_firms"]["auth"] == "user MAP_KEY"
     assert set(providers["nasa_firms"]) == {
         "id", "attribution", "terms", "decision", "auth", "tier", "overview"
     }
     assert server.SESSION_TOKEN.encode() not in body
+
+
+def test_cisa_kev_route_stays_on_stateless_fallback_when_v2_is_enabled(
+    local_server, monkeypatch
+):
+    calls = []
+
+    def fallback_provider(provider_id):
+        calls.append(provider_id)
+        return SimpleNamespace(
+            fetch=lambda: (
+                b'{"items":[{"cve":"CVE-FALLBACK"}]}',
+                "application/json",
+                3,
+                "cached",
+            )
+        )
+
+    monkeypatch.setattr(server, "V2_SERVICE", None)
+    monkeypatch.setattr(server, "V2_SCHEDULER", None)
+    monkeypatch.setattr(server.PROVIDER_REGISTRY, "get", fallback_provider)
+    status, headers, body = request(local_server, "GET", "/api/cisa-kev")
+    assert status == 200
+    assert calls == ["cisa_kev"]
+    assert headers["X-Foglight-Freshness"] == "cached"
+    assert json.loads(body) == {"items": [{"cve": "CVE-FALLBACK"}]}
+
+    monkeypatch.setattr(server, "V2_SERVICE", object())
+    monkeypatch.setattr(
+        server,
+        "V2_SCHEDULER",
+        SimpleNamespace(managed_provider_ids={"usgs_earthquakes"}),
+    )
+    status, headers, body = request(local_server, "GET", "/api/cisa-kev")
+    assert status == 200
+    assert calls == ["cisa_kev", "cisa_kev"]
+    assert headers["X-Foglight-Freshness"] == "cached"
+    assert json.loads(body) == {"items": [{"cve": "CVE-FALLBACK"}]}
 
 
 def test_provider_catalog_fails_closed_when_local_registry_is_oversized(

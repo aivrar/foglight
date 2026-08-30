@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import datetime as dt
 import json
 import re
 import time
@@ -177,6 +178,50 @@ def nhc_storms():
     active tropical cyclones with tracks. Free, no key, CORS-friendly."""
     url = "https://www.nhc.noaa.gov/CurrentStorms.json"
     return fetch(url, ttl=600, ctype_hint="application/json", timeout=10)
+
+
+def cisa_kev(*, ingested_at=None):
+    """Return the bounded recent CISA KEV projection used by the dashboard."""
+    url = (
+        "https://www.cisa.gov/sites/default/files/feeds/"
+        "known_exploited_vulnerabilities.json"
+    )
+    body, _ctype, age, fresh = fetch(
+        url,
+        ttl=21600,
+        ctype_hint="application/json",
+        timeout=15,
+        max_bytes=3 * 1024 * 1024,
+    )
+    # Import lazily so the legacy provider surface does not create an import
+    # cycle through foglight_core.providers.__init__ at module load time.
+    from .canonical import normalize_provider, project_legacy_panel
+
+    if ingested_at is None:
+        ingested_at = dt.datetime.now(dt.UTC).isoformat(timespec="seconds").replace(
+            "+00:00", "Z"
+        )
+    result = normalize_provider("cisa_kev", body, ingested_at=ingested_at)
+    payload = project_legacy_panel(
+        "cisa_kev", result.observations, reference_at=ingested_at
+    )
+    if fresh != "error" and any(
+        item.code in {"malformed_body", "unexpected_root"}
+        or (item.code == "missing_fields" and item.fields == ("vulnerabilities",))
+        for item in result.diagnostics
+    ):
+        fresh = "error"
+    if fresh != "error" and not result.observations and any(
+        item.code in {"missing_fields", "invalid_record"}
+        for item in result.diagnostics
+    ):
+        fresh = "error"
+    return (
+        json.dumps(payload, allow_nan=False).encode("utf-8"),
+        "application/json",
+        age,
+        fresh,
+    )
 
 
 # -------- ReliefWeb (humanitarian sitreps) --------

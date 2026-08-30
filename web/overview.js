@@ -129,6 +129,7 @@ export function createOverviewController({
   let pendingDrawerTimer = null;
   let changeText = 'No changes since this view opened.';
   let nextIncidentCursor = null;
+  let totalIncidents = 0;
   let catalogVisible = 50;
   let selectedIncidentId = null;
   let lastRevisionAt = null;
@@ -200,7 +201,7 @@ export function createOverviewController({
     const node = document.getElementById('overview-health');
     const counts = health?.counts || {};
     const attention = finiteNumber(counts.error) + finiteNumber(counts.stale);
-    const live = finiteNumber(counts.live);
+    const live = finiteNumber(counts.live) ?? 0;
     const cached = finiteNumber(counts.cached);
     const pending = finiteNumber(counts.pending);
     const parts = [];
@@ -221,6 +222,36 @@ export function createOverviewController({
       list.appendChild(row);
     }
     if (!list.childElementCount) appendText(list, 'li', '', 'All checked sources are current.');
+  }
+
+  function renderCollectionMetrics(selected) {
+    const active = selected.filter(item => ['active', 'updated'].includes(
+      String(item?.status || '').toLowerCase(),
+    )).length;
+    const priority = selected.reduce(
+      (maximum, item) => Math.max(maximum, finiteNumber(item?.priority_score)), 0,
+    );
+    const laneCount = lane => selected.filter(item => item?.lane === lane).length;
+    const geolocated = selected.filter(item => {
+      const centroid = item?.centroid;
+      return Array.isArray(centroid) && centroid.length >= 2
+        && Number.isFinite(Number(centroid[0])) && Number.isFinite(Number(centroid[1]));
+    }).length;
+    const counts = health?.counts || {};
+    const live = finiteNumber(counts.live) ?? 0;
+    const total = Object.values(counts).reduce((sum, value) => sum + finiteNumber(value), 0);
+    const values = {
+      'overview-metric-active': active,
+      'overview-metric-priority': selected.length ? Math.round(priority) : '--',
+      'overview-metric-hazards': laneCount('hazards'),
+      'overview-metric-context': laneCount('world_context'),
+      'overview-metric-geo': geolocated,
+      'overview-metric-sources': `${live}/${total || '--'}`,
+    };
+    for (const [id, value] of Object.entries(values)) {
+      const node = document.getElementById(id);
+      if (node) node.textContent = String(value);
+    }
   }
 
   function renderCatalog() {
@@ -265,6 +296,7 @@ export function createOverviewController({
     }
     incidents = [...byId.values()];
     nextIncidentCursor = response.body.next_cursor ?? null;
+    totalIncidents = Math.max(totalIncidents, Number(response.body.total) || incidents.length);
     catalogVisible += 50;
     render();
     renderCatalog();
@@ -283,7 +315,10 @@ export function createOverviewController({
     document.getElementById('overview-state-title').textContent = title;
     document.getElementById('overview-state-message').textContent = message;
     document.getElementById('overview-change-summary').textContent = changeText;
-    document.getElementById('overview-count').textContent = `${selected.length} matching · showing ${Math.min(selected.length, mode === 'command' ? 12 : 8)}`;
+    const showing = Math.min(selected.length, mode === 'command' ? 12 : 8);
+    document.getElementById('overview-count').textContent = filter === 'global' && totalIncidents > incidents.length
+      ? `${selected.length} loaded of ${totalIncidents} total · showing ${showing}`
+      : `${selected.length} matching · showing ${showing}`;
 
     const list = document.getElementById('overview-now-list');
     list.replaceChildren();
@@ -307,6 +342,7 @@ export function createOverviewController({
     mapController.update(selected);
     mapController.select(selectedIncidentId);
     applySelectionState();
+    renderCollectionMetrics(selected);
     renderHealth();
     renderCatalog();
     onSnapshot({
@@ -363,6 +399,7 @@ export function createOverviewController({
       if (response.status !== 200 || !response.body?.incidents) throw new Error('bootstrap unavailable');
       incidents = Array.isArray(response.body.incidents.items) ? response.body.incidents.items : [];
       nextIncidentCursor = response.body.incidents.next_cursor ?? null;
+      totalIncidents = Math.max(incidents.length, Number(response.body.incidents.total) || 0);
       health = response.body.source_health || { counts: {}, sources: [] };
       cursor = Math.max(0, Number(response.body.revision_cursor) || 0);
       lastRevisionAt = response.body.last_revision_at || null;

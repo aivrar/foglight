@@ -16,7 +16,7 @@
   },
   "openfema_declarations": {
     "format": "json",
-    "valid": {"metadata":{"skip":0,"top":100,"count":1},"DisasterDeclarationsSummaries":[{"femaDeclarationString":"DR-4999-CO","disasterNumber":4999,"state":"CO","declarationType":"DR","declarationDate":"2026-07-10T18:00:00.000Z","fyDeclared":2026,"incidentType":"Severe Storm","declarationTitle":"SEVERE STORMS AND FLOODING","ihProgramDeclared":true,"iaProgramDeclared":false,"paProgramDeclared":true,"hmProgramDeclared":true,"incidentBeginDate":"2026-07-05T00:00:00.000Z","incidentEndDate":"2026-07-09T23:59:00.000Z","disasterCloseoutDate":null,"tribalRequest":false,"fipsStateCode":"08","fipsCountyCode":"001","placeCode":"99001","designatedArea":"Adams (County)","lastRefresh":"2026-07-10T18:20:00.000Z","hash":"fixture-hash","id":"fixture-openfema-1"}]},
+    "valid": {"metadata":{"skip":0,"top":100,"count":1},"DisasterDeclarationsSummaries":[{"femaDeclarationString":"DR-4999-CO","disasterNumber":4999,"state":"CO","declarationType":"DR","declarationDate":"2026-07-10T18:00:00.000Z","declarationRequestDate":"2026-07-09T18:00:00.000Z","fyDeclared":2026,"incidentType":"Severe Storm","declarationTitle":"SEVERE STORMS AND FLOODING","ihProgramDeclared":true,"iaProgramDeclared":false,"paProgramDeclared":true,"hmProgramDeclared":true,"incidentBeginDate":"2026-07-05T00:00:00.000Z","incidentEndDate":"2026-07-09T23:59:00.000Z","disasterCloseoutDate":null,"tribalRequest":false,"fipsStateCode":"08","fipsCountyCode":"001","placeCode":"99001","designatedArea":"Adams (County)","lastRefresh":"2026-07-10T18:20:00.000Z","hash":"fixture-hash","id":"fixture-openfema-1"}]},
     "expected_count": 1
   },
   "nasa_jpl_fireballs": {
@@ -36,7 +36,7 @@
   },
   "nhc_storms": {
     "format": "json",
-    "valid": {"activeStorms":[{"id":"al012026","binNumber":"AT1","name":"ALPHA","classification":"HU","intensity":85,"pressure":970,"latitude":"22.9N","longitude":"79.9W","latitude_numeric":22.9,"longitude_numeric":-79.9,"movementDir":280,"movementSpeed":9,"lastUpdate":"2026-07-10T20:00:00Z","publicAdvisory":{"advNum":"042","issuance":"2026-07-10T19:00:00Z","url":"https://www.nhc.noaa.gov/text/MIATCPAT1.shtml"}}]},
+    "valid": {"activeStorms":[{"id":"al012026","binNumber":"AT1","name":"ALPHA","classification":"HU","intensity":85,"pressure":970,"latitude":"22.9N","longitude":"79.9W","latitudeNumeric":22.9,"longitudeNumeric":-79.9,"movementDir":280,"movementSpeed":9,"lastUpdate":"2026-07-10T20:00:00Z","publicAdvisory":{"advNum":"042","issuance":"2026-07-10T19:00:00Z","url":"https://www.nhc.noaa.gov/text/MIATCPAT1.shtml"},"peakSurgeKML":"https://www.nhc.noaa.gov/storm_graphics/AT01/peakSurge.kml"}]},
     "expected_count": 1
   },
   "noaa_tsunami": {

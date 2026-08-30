@@ -61,6 +61,7 @@ be dense, local, and immediately useful after launching one Windows executable.
 | Conflict Watch | UN, DW, France 24, and defense RSS stream |
 | Major Hazards | Cyclones, volcanoes, tsunami notices, significant quakes, GDACS alerts |
 | Humanitarian Sitreps | ReliefWeb updates |
+| Cyber Watch | Newest 60 days of the CISA Known Exploited Vulnerabilities catalog, federal remediation deadlines, and reported ransomware use |
 | Bitcoin Pulse | Fees, mempool, recent blocks, difficulty adjustment |
 | Markets | Keyless crypto/forex; commodity compatibility is disabled pending explicit terms review |
 | Wikipedia Edits | Recent public Wikimedia EventStreams activity |
