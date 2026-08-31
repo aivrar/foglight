@@ -84,6 +84,82 @@ def test_pass_through_provider_contract(monkeypatch, call, expected_host, expect
     assert (body, ctype, fresh) == (b"{}", expected_type, "live")
 
 
+def test_cisa_kev_contract_is_bounded_and_projects_the_panel_shape(monkeypatch):
+    captured = {}
+
+    def fake_fetch(url, **kwargs):
+        captured.update(url=url, kwargs=kwargs)
+        return _payload("cisa_kev"), "application/json", 0, "live"
+
+    monkeypatch.setattr(server, "fetch", fake_fetch)
+    body, ctype, _age, fresh = server.cisa_kev(
+        ingested_at="2026-08-30T12:00:00Z"
+    )
+    parsed = json.loads(body)
+
+    assert captured["url"].startswith("https://www.cisa.gov/")
+    assert captured["kwargs"]["ttl"] == 21600
+    assert captured["kwargs"]["max_bytes"] == 3 * 1024 * 1024
+    assert (ctype, fresh) == ("application/json", "live")
+    assert parsed["items"][0] == {
+        "cve": "CVE-2026-12345",
+        "vendor": "Fixture Systems",
+        "product": "Fixture Gateway",
+        "name": "Fixture Gateway Command Injection Vulnerability",
+        "date_added": "2026-08-29",
+        "due_date": "2026-09-19",
+        "ransomware": "Known",
+        "description": "Fixture description.",
+        "action": "Apply vendor mitigations.",
+        "link": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog",
+    }
+
+    monkeypatch.setattr(
+        server,
+        "fetch",
+        lambda *_args, **_kwargs: (b"not-json", "application/json", 0, "live"),
+    )
+    malformed, _ctype, _age, malformed_fresh = server.cisa_kev(
+        ingested_at="2026-08-30T12:00:00Z"
+    )
+    assert json.loads(malformed) == {"items": []}
+    assert malformed_fresh == "error"
+
+    missing_record = json.loads(_payload("cisa_kev"))
+    missing_record["vulnerabilities"][0].pop("requiredAction")
+    monkeypatch.setattr(
+        server,
+        "fetch",
+        lambda *_args, **_kwargs: (
+            json.dumps(missing_record).encode(),
+            "application/json",
+            0,
+            "live",
+        ),
+    )
+    missing, _ctype, _age, missing_fresh = server.cisa_kev(
+        ingested_at="2026-08-30T12:00:00Z"
+    )
+    assert json.loads(missing) == {"items": []}
+    assert missing_fresh == "error"
+
+    monkeypatch.setattr(
+        server,
+        "fetch",
+        lambda *_args, **_kwargs: (
+            _payload("cisa_kev", "empty"),
+            "application/json",
+            0,
+            "live",
+        ),
+    )
+    empty, _ctype, _age, empty_fresh = server.cisa_kev(
+        ingested_at="2026-08-30T12:00:00Z"
+    )
+    assert json.loads(empty) == {"items": []}
+    assert empty_fresh == "live"
+
+
 def test_rss_parser_contract_handles_rss_atom_empty_and_malformed():
     rss = server._parse_rss_items(_payload("rss_proxy"))
     atom = server._parse_rss_items(_payload("reddit_popular"))

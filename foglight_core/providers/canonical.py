@@ -527,6 +527,7 @@ class OpenFemaDeclarationAdapter(CanonicalAdapter):
         "incidentEndDate", "disasterCloseoutDate", "disasterCloseOutDate",
         "tribalRequest", "fipsStateCode", "fipsCountyCode", "placeCode",
         "designatedArea", "declaredCountyArea", "declarationRequestNumber",
+        "declarationRequestDate",
         "lastIAFilingDate", "incidentId", "region", "designatedIncidentTypes",
         "lastRefresh", "hash", "id",
     })
@@ -1177,14 +1178,15 @@ class NhcStormAdapter(CanonicalAdapter):
     source_urls = ("https://www.nhc.noaa.gov/CurrentStorms.json",)
     known_record_fields = frozenset({
         "id", "binNumber", "name", "classification", "intensity", "pressure",
-        "latitude", "longitude", "latitude_numeric", "longitude_numeric",
+        "latitude", "longitude", "latitudeNumeric", "longitudeNumeric",
+        "latitude_numeric", "longitude_numeric",
         "movementDir", "movementSpeed", "lastUpdate", "publicAdvisory",
         "forecastAdvisory", "windSpeedProbabilities", "forecastDiscussion",
         "forecastGraphics", "forecastTrack", "windWatchesWarnings", "trackCone",
         "initialWindExtent", "forecastWindRadiiGIS", "bestTrackGIS",
         "earliestArrivalTimeTSWindsGIS", "mostLikelyTimeTSWindsGIS",
         "windSpeedProbabilitiesGIS", "stormSurgeWatchWarningGIS",
-        "potentialStormSurgeFloodingGIS",
+        "potentialStormSurgeFloodingGIS", "peakSurgeKML",
     })
 
     def normalize(self, body, *, ingested_at):
@@ -1201,7 +1203,21 @@ class NhcStormAdapter(CanonicalAdapter):
                 continue
             record_id = storm.get("id", "")
             diagnostics.extend(self._unknown(storm, record_id))
-            missing = _required(storm, ("id", "name", "lastUpdate", "latitude_numeric", "longitude_numeric"))
+            latitude_numeric = storm.get("latitudeNumeric")
+            if latitude_numeric in (None, ""):
+                latitude_numeric = storm.get("latitude_numeric")
+            longitude_numeric = storm.get("longitudeNumeric")
+            if longitude_numeric in (None, ""):
+                longitude_numeric = storm.get("longitude_numeric")
+            missing = _required(storm, ("id", "name", "lastUpdate"))
+            missing += tuple(
+                field
+                for field, value in (
+                    ("latitudeNumeric", latitude_numeric),
+                    ("longitudeNumeric", longitude_numeric),
+                )
+                if value in (None, "")
+            )
             if missing:
                 diagnostics.append(self._diagnostic("missing_fields", record_id, missing))
                 continue
@@ -1232,7 +1248,7 @@ class NhcStormAdapter(CanonicalAdapter):
                 event_at=None, effective_at=storm.get("lastUpdate"),
                 source_updated_at=storm.get("lastUpdate"),
                 ingested_at=ingested_at,
-                geometry={"type": "Point", "coordinates": [storm["longitude_numeric"], storm["latitude_numeric"]]},
+                geometry={"type": "Point", "coordinates": [longitude_numeric, latitude_numeric]},
                 location_name=f"{storm.get('latitude', '')} {storm.get('longitude', '')}".strip(),
                 metrics=metrics, source_url=source_url,
             )
@@ -1634,6 +1650,160 @@ class SwpcKpAdapter(CanonicalAdapter):
         return NormalizationResult(tuple(output), tuple(diagnostics))
 
 
+class CisaKevAdapter(CanonicalAdapter):
+    """Normalize the recent edge of CISA's public exploited-vulnerability catalog."""
+
+    provider_id = "cisa_kev"
+    source_urls = (
+        "https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json",
+    )
+    max_age_days = 60
+    max_records = 250
+    known_record_fields = frozenset({
+        "cveID", "vendorProject", "product", "vulnerabilityName", "dateAdded",
+        "shortDescription", "requiredAction", "dueDate",
+        "knownRansomwareCampaignUse", "notes", "cwes",
+    })
+    required_record_fields = (
+        "cveID", "vendorProject", "product", "vulnerabilityName", "dateAdded",
+        "shortDescription", "requiredAction", "dueDate",
+        "knownRansomwareCampaignUse",
+    )
+
+    @staticmethod
+    def _date(value):
+        if not isinstance(value, str) or not re.fullmatch(r"\d{4}-\d{2}-\d{2}", value):
+            return None
+        try:
+            return dt.date.fromisoformat(value)
+        except ValueError:
+            return None
+
+    def normalize(self, body, *, ingested_at):
+        raw, initial = _decode_json(body, self.provider_id)
+        if raw is None:
+            return NormalizationResult(diagnostics=initial)
+        vulnerabilities = raw.get("vulnerabilities")
+        if not isinstance(vulnerabilities, list):
+            return NormalizationResult(
+                diagnostics=(self._diagnostic("missing_fields", fields=("vulnerabilities",)),)
+            )
+
+        ingested = dt.datetime.fromisoformat(
+            normalize_timestamp(ingested_at, required=True).replace("Z", "+00:00")
+        )
+        cutoff = ingested.date() - dt.timedelta(days=self.max_age_days)
+        diagnostics = list(initial)
+        candidates = []
+        for record in vulnerabilities:
+            if not isinstance(record, dict):
+                diagnostics.append(self._diagnostic("invalid_record"))
+                continue
+            record_id = record.get("cveID", "")
+            diagnostics.extend(self._unknown(record, record_id))
+            missing = _required(record, self.required_record_fields)
+            if missing:
+                diagnostics.append(self._diagnostic("missing_fields", record_id, missing))
+                continue
+            invalid_text = tuple(
+                field
+                for field in self.required_record_fields
+                if not isinstance(record.get(field), str)
+            )
+            if invalid_text or not re.fullmatch(r"CVE-\d{4}-\d{4,}", record_id):
+                diagnostics.append(
+                    self._diagnostic("invalid_record", record_id, invalid_text or ("cveID",))
+                )
+                continue
+            date_added = self._date(record["dateAdded"])
+            due_date = self._date(record["dueDate"])
+            if date_added is None or due_date is None:
+                fields = tuple(
+                    field
+                    for field, value in (("dateAdded", date_added), ("dueDate", due_date))
+                    if value is None
+                )
+                diagnostics.append(self._diagnostic("invalid_record", record_id, fields))
+                continue
+            if date_added > ingested.date():
+                diagnostics.append(
+                    self._diagnostic("invalid_record", record_id, ("dateAdded",))
+                )
+                continue
+            if date_added < cutoff:
+                continue
+            candidates.append((date_added, record_id, due_date, record))
+
+        candidates.sort(key=lambda item: (item[0], item[1]), reverse=True)
+        output = []
+        for date_added, record_id, due_date, record in candidates[: self.max_records]:
+            vendor = _clean_markup(record["vendorProject"], 500)
+            product = _clean_markup(record["product"], 500)
+            name = _clean_markup(record["vulnerabilityName"], 500)
+            description = _clean_markup(record["shortDescription"])
+            action = _clean_markup(record["requiredAction"], 500)
+            ransomware = _clean_markup(record["knownRansomwareCampaignUse"], 500)
+            metrics = {
+                "vendor": Metric(vendor, "organization", "CISA vendorProject"),
+                "product": Metric(product, "product", "CISA product"),
+                "vulnerability_name": Metric(
+                    name, "name", "CISA vulnerabilityName"
+                ),
+                "date_added": Metric(
+                    date_added.isoformat(), "date", "CISA dateAdded"
+                ),
+                "due_date": Metric(
+                    due_date.isoformat(), "date", "CISA FCEB dueDate"
+                ),
+                "known_ransomware_campaign_use": Metric(
+                    ransomware, "CISA value", "CISA knownRansomwareCampaignUse"
+                ),
+                "required_action": Metric(
+                    action, "FCEB action", "CISA requiredAction"
+                ),
+                "catalog_semantics": Metric(
+                    "known_exploited_vulnerability",
+                    "content type",
+                    "CISA KEV Catalog",
+                ),
+            }
+            cwes = record.get("cwes")
+            if isinstance(cwes, list):
+                cwe_text = ",".join(
+                    value for value in cwes if isinstance(value, str) and value
+                )[:500]
+                if cwe_text:
+                    metrics["cwes"] = Metric(cwe_text, "CWE IDs", "CISA cwes")
+            observation = self._observation(
+                body,
+                diagnostics,
+                record_id,
+                # This adapter is panel-only until V2 has batch reconciliation.
+                kind=EventKind.UNKNOWN,
+                headline=f"{record_id}: {name}"[:300],
+                summary=description,
+                # Presence in KEV does not supply an operational lifecycle state.
+                status=Status.UNKNOWN,
+                severity=Severity.UNKNOWN,
+                urgency=Urgency.UNKNOWN,
+                certainty=Certainty.UNKNOWN,
+                # KEV dateAdded is catalog metadata, not an exploitation time
+                # or a per-record update timestamp. It remains a labeled metric.
+                event_at=None,
+                effective_at=None,
+                expires_at=None,
+                source_updated_at=None,
+                ingested_at=ingested_at,
+                geometry=None,
+                location_name="",
+                metrics=metrics,
+                source_url="https://www.cisa.gov/known-exploited-vulnerabilities-catalog",
+            )
+            if observation:
+                output.append(observation)
+        return NormalizationResult(tuple(output), tuple(diagnostics))
+
+
 class ReliefWebRssAdapter(CanonicalAdapter):
     provider_id = "reliefweb_rss"
     source_urls = ("https://reliefweb.int/updates/rss.xml",)
@@ -1691,10 +1861,19 @@ CORE_CANONICAL_ADAPTERS = {
     )
 }
 
+PANEL_CANONICAL_ADAPTERS = {
+    "cisa_kev": CisaKevAdapter(),
+}
+
+CANONICAL_ADAPTERS = {
+    **CORE_CANONICAL_ADAPTERS,
+    **PANEL_CANONICAL_ADAPTERS,
+}
+
 
 def normalize_provider(provider_id: str, body: bytes | str, *, ingested_at: str):
     try:
-        adapter = CORE_CANONICAL_ADAPTERS[provider_id]
+        adapter = CANONICAL_ADAPTERS[provider_id]
     except KeyError as error:
         raise KeyError(f"no canonical adapter for provider: {provider_id}") from error
     return adapter.normalize(body, ingested_at=ingested_at)
@@ -1712,7 +1891,12 @@ def _metric_value(observation, key, default=None):
     return metric.value if metric else default
 
 
-def project_legacy_panel(provider_id: str, observations: tuple[Observation, ...]):
+def project_legacy_panel(
+    provider_id: str,
+    observations: tuple[Observation, ...],
+    *,
+    reference_at: str | None = None,
+):
     """Project canonical fixtures into the fields consumed by current V1 panels."""
     if provider_id == "usgs_earthquakes":
         return {
@@ -1846,6 +2030,59 @@ def project_legacy_panel(provider_id: str, observations: tuple[Observation, ...]
             }
             for item in observations
         ]
+    if provider_id == "cisa_kev":
+        reference_date = (
+            CisaKevAdapter._date(reference_at[:10])
+            if isinstance(reference_at, str)
+            else None
+        )
+        if reference_date is None:
+            reference_date = max(
+                (dt.date.fromisoformat(item.ingested_at[:10]) for item in observations),
+                default=None,
+            )
+        cutoff = (
+            reference_date - dt.timedelta(days=CisaKevAdapter.max_age_days)
+            if reference_date is not None
+            else None
+        )
+
+        def is_recent(item):
+            date_added = CisaKevAdapter._date(
+                _metric_value(item, "date_added", "")
+            )
+            return cutoff is None or (
+                date_added is not None
+                and cutoff <= date_added <= reference_date
+            )
+
+        ordered = sorted(
+            (item for item in observations if is_recent(item)),
+            key=lambda item: (
+                str(_metric_value(item, "date_added", "")),
+                item.provider_record_id,
+            ),
+            reverse=True,
+        )
+        return {
+            "items": [
+                {
+                    "cve": item.provider_record_id,
+                    "vendor": _metric_value(item, "vendor", ""),
+                    "product": _metric_value(item, "product", ""),
+                    "name": _metric_value(item, "vulnerability_name", item.headline),
+                    "date_added": _metric_value(item, "date_added", ""),
+                    "due_date": _metric_value(item, "due_date", ""),
+                    "ransomware": _metric_value(
+                        item, "known_ransomware_campaign_use", "Unknown"
+                    ),
+                    "description": item.summary,
+                    "action": _metric_value(item, "required_action", ""),
+                    "link": item.source_url,
+                }
+                for item in ordered[: CisaKevAdapter.max_records]
+            ]
+        }
     if provider_id == "reliefweb_rss":
         return {
             "articles": [

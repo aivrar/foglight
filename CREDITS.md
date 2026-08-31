@@ -38,6 +38,7 @@ from.
 | NOAA National Data Buoy Center | Contextual nearby marine observations |
 | NOAA Tides and Currents / CO-OPS | Contextual water-level observations and station metadata |
 | NASA/JPL Center for Near-Earth Object Studies | Fireball peak-brightness observations |
+| CISA Known Exploited Vulnerabilities Catalog | Vulnerabilities known to have been exploited in the wild; catalog data is provided under CC0 1.0 |
 | NASA EONET | Open natural event feed |
 | NASA FIRMS | Optional MODIS/VIIRS fire detections |
 | GDACS | Global disaster alert RSS |

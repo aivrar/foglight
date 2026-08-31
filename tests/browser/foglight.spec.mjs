@@ -11,6 +11,7 @@ const settings = {
     bitcoin_block: true,
   },
   panels: {
+    cyber: true,
     tv: true,
     conflict: true,
     cyclones: true,
@@ -224,6 +225,15 @@ const jsonBodies = {
     items: [
       { id: 'usgs_earthquakes', attribution: 'USGS', terms: 'https://www.usgs.gov/', auth: 'none', decision: 'approved', overview: true },
       { id: 'nasa_firms', attribution: 'NASA FIRMS', terms: 'https://firms.modaps.eosdis.nasa.gov/', auth: 'user MAP_KEY', decision: 'optional', overview: false },
+      ...Array.from({ length: 26 }, (_value, index) => ({
+        id: `fixture_public_${String(index + 1).padStart(2, '0')}`,
+        attribution: `Fixture public source ${index + 1}`,
+        terms: 'https://example.test/terms',
+        auth: 'none',
+        decision: 'approved',
+        overview: false,
+      })),
+      { id: 'rss_proxy', attribution: 'User RSS', terms: 'https://example.test/rss-terms', auth: 'user URL', decision: 'optional-user-configured', overview: false },
     ],
   },
   '/api/usgs': {
@@ -262,6 +272,26 @@ const jsonBodies = {
   '/api/cyclones': { activeStorms: [] },
   '/api/relief': { articles: [{ ts: 1783700000, title: 'Fixture humanitarian update', link: 'https://reliefweb.int/' }] },
   '/api/space-weather': [],
+  '/api/cisa-kev': {
+    items: [
+      {
+        cve: 'CVE-2026-4242', vendor: 'Fixture Systems', product: 'Edge Gateway',
+        name: 'Fixture gateway command injection vulnerability', date_added: '2026-07-09',
+        due_date: '2026-07-30', ransomware: 'Known',
+        description: 'CISA fixture known exploited vulnerability.',
+        action: 'Apply vendor mitigations or discontinue use.',
+        link: 'https://www.cisa.gov/known-exploited-vulnerabilities-catalog',
+      },
+      {
+        cve: 'CVE-2026-3131', vendor: 'Example Industrial', product: 'Control Console',
+        name: 'Fixture control-console access vulnerability', date_added: '2026-07-08',
+        due_date: '2026-07-29', ransomware: 'Unknown',
+        description: 'CISA fixture known exploited vulnerability.',
+        action: 'Apply vendor mitigations.',
+        link: 'https://www.cisa.gov/known-exploited-vulnerabilities-catalog',
+      },
+    ],
+  },
   '/api/iss': { message: 'success', timestamp: 1783700000, iss_position: { latitude: '12.3', longitude: '45.6' } },
   '/api/crypto': [{ id: 'bitcoin', symbol: 'BTC', rank: 1, quotes: { USD: { price: 60000, percent_change_24h: 1.2 } } }],
   '/api/forex': { base: 'USD', date: '2026-07-10', rates: { EUR: 0.85, GBP: 0.74, JPY: 145 } },
@@ -289,6 +319,12 @@ async function installDeterministicNetwork(page, overrides = {}) {
     if (url.origin === 'http://127.0.0.1:19876') return route.continue();
     if (url.hostname === 'tile.openstreetmap.org' && overrides.__tileSuccess) {
       return route.fulfill({ body: deterministicMapTile, contentType: 'image/svg+xml' });
+    }
+    if (url.hostname === 'www.youtube.com' && url.pathname === '/embed/live_stream') {
+      return route.fulfill({
+        contentType: 'text/html',
+        body: '<!doctype html><style>html,body{margin:0;width:100%;height:100%;background:#000}</style>',
+      });
     }
     return route.abort();
   });
@@ -379,6 +415,11 @@ test.beforeEach(async ({ page }, testInfo) => {
   }
   if (testInfo.title.includes('[overview empty]')) {
     overrides['/api/v2/bootstrap'] = bootstrapFixture({ items: [] });
+  }
+  if (testInfo.title.includes('[overview unknown metric]')) {
+    overrides['/api/v2/bootstrap'] = bootstrapFixture({
+      items: [incident(0, { status: 'unknown' }), ...overviewItems.slice(1)],
+    });
   }
   if (testInfo.title.includes('[overview partial]')) {
     overrides['/api/v2/bootstrap'] = bootstrapFixture({
@@ -601,6 +642,20 @@ test.beforeEach(async ({ page }, testInfo) => {
       status: 503, freshness: 'error', body: { error: 'fixture offline' },
     };
   }
+  if (testInfo.title.includes('[standard cached health]')) {
+    overrides['/api/usgs'] = {
+      status: 200, freshness: 'cached', body: jsonBodies['/api/usgs'],
+    };
+  }
+  if (testInfo.title.includes('[standard cyclone coordinates]')) {
+    overrides['/api/cyclones'] = {
+      activeStorms: [{
+        id: 'al012026', name: 'ALPHA', classification: 'HU', intensity: 85,
+        latitude: '22.9N', longitude: '79.9W',
+        latitudeNumeric: 22.9, longitudeNumeric: -79.9,
+      }],
+    };
+  }
   await installDeterministicNetwork(page, overrides);
 });
 
@@ -625,9 +680,14 @@ test('starts with deterministic data and supports primary settings interaction',
   expect(attributionCovered).toBe(false);
   await expect(page.locator('#body-weather')).toContainText('Severe Thunderstorm Warning');
   await expect(page.locator('#body-conflict')).toContainText('Fixture ceasefire talks');
-  await expect(page.locator('#stat-feeds-txt')).toHaveText('15/15 live');
+  await expect(page.locator('#body-cyber')).toContainText('CVE-2026-4242');
+  await expect(page.locator('#body-cyber')).toContainText('RANSOM');
+  await expect(page.locator('#body-cyber')).toContainText('FCEB 07-30');
+  await expect(page.locator('#stat-cyber')).toHaveText('2');
+  await expect(page.locator('#stat-cyber')).not.toHaveClass(/\b(?:hot|warn|good)\b/);
+  await expect(page.locator('#stat-feeds-txt')).toHaveText('16/16 live');
   expect(await page.evaluate(() => window.__foglightFeedHealth)).toEqual({
-    live: 15, cached: 0, errored: 0, total: 15,
+    live: 16, cached: 0, errored: 0, total: 16,
   });
   expect(requestedPaths).not.toContain('/api/flights');
   expect(requestedPaths).not.toContain('/api/commodities');
@@ -642,6 +702,17 @@ test('starts with deterministic data and supports primary settings interaction',
   await expect(page.locator('#provider-attributions a').first()).toHaveAttribute('href', 'https://www.usgs.gov/');
   await page.locator('#settings-close').click();
   await expect(page.locator('#pane-settings')).not.toHaveClass(/show/);
+});
+
+test('started live TV removes its launch overlay from keyboard navigation', async ({ page }) => {
+  await page.goto('/', { waitUntil: 'domcontentloaded' });
+  const overlay = page.locator('#tv-overlay');
+  await expect(overlay).toBeVisible();
+  await overlay.click();
+  await expect(overlay).toBeHidden();
+  await expect(overlay).toHaveAttribute('aria-hidden', 'true');
+  await expect(overlay).toHaveAttribute('tabindex', '-1');
+  await expect(page.locator('#tv-open')).toBeFocused();
 });
 
 test('[conditional standard disabled] map click does not contact Open-Meteo', async ({ page }) => {
@@ -681,6 +752,32 @@ test('[settings attribution failure] keeps Settings usable', async ({ page }) =>
     'Source terms are temporarily unavailable.',
   );
   await expect(page.getByRole('heading', { name: 'Panels' })).toBeVisible();
+});
+
+test('[settings attribution retry] recovers after a transient startup failure', async ({ page }) => {
+  let attempts = 0;
+  await page.route('**/api/providers', route => {
+    attempts += 1;
+    if (attempts === 1) {
+      return route.fulfill({
+        status: 503,
+        contentType: 'application/json',
+        body: JSON.stringify({ error: 'fixture catalog failure' }),
+      });
+    }
+    return route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(jsonBodies['/api/providers']),
+    });
+  });
+  await page.goto('/', { waitUntil: 'domcontentloaded' });
+  await expect.poll(() => attempts).toBeGreaterThanOrEqual(1);
+  await page.getByRole('button', { name: 'Settings', exact: true }).click();
+  await expect(page.locator('#provider-attributions')).toContainText('USGS');
+  await expect(page.locator('#classification-mark')).toContainText('29 public sources');
+  await expect(page.locator('#mission-manifest')).toHaveText('27 keyless');
+  expect(attempts).toBeGreaterThanOrEqual(2);
 });
 
 test('[settings attribution malformed] fails closed without a page error', async ({ page }) => {
@@ -823,6 +920,87 @@ test('switches theater mode and supports map and list selection', async ({ page 
   await expect(page.locator('.leaflet-popup-content')).toContainText('Fixture Coast');
 });
 
+test('[standard cached health] labels a cached source instead of showing all-live posture', async ({ page }) => {
+  await page.goto('/', { waitUntil: 'domcontentloaded' });
+  await expect(page.locator('#body-quakes')).toContainText('Fixture Coast');
+  await expect(page.locator('#stat-feeds-txt')).toHaveText('15 live · 1 cached');
+  await expect(page.locator('#stat-feeds .dot')).toHaveClass(/stale/);
+  await expect(page.locator('#mission-posture')).toHaveText('partial');
+});
+
+test('[standard cyclone coordinates] maps the live NHC camelCase coordinate schema', async ({ page }) => {
+  await page.goto('/', { waitUntil: 'domcontentloaded' });
+  await expect(page.locator('#body-cyclones')).toContainText('ALPHA');
+  const cyclonePosition = await page.evaluate(() => {
+    let position = null;
+    window.__foglight.layers.cyclones.eachLayer(layer => {
+      const popup = layer.getPopup?.();
+      if (String(popup?.getContent?.() || '').includes('ALPHA')) {
+        const coordinates = layer.getLatLng?.();
+        if (coordinates) position = [coordinates.lat, coordinates.lng];
+      }
+    });
+    return position;
+  });
+  expect(cyclonePosition).toEqual([22.9, -79.9]);
+});
+
+test('standard global theater frames the world and resets after a theater focus', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.goto('/', { waitUntil: 'domcontentloaded' });
+  await expect(page.locator('#body-quakes')).toContainText('Fixture Coast');
+
+  const globalMapState = () => page.evaluate(() => {
+    const map = window.__foglight.map;
+    const bounds = map.getBounds();
+    let fixtureVisible = false;
+    window.__foglight.layers.quakes.eachLayer(layer => {
+      if (layer.getLatLng?.() && bounds.contains(layer.getLatLng())) fixtureVisible = true;
+    });
+    return {
+      longitudeSpan: bounds.getEast() - bounds.getWest(),
+      fixtureVisible,
+      zoom: map.getZoom(),
+    };
+  });
+
+  await expect.poll(async () => (await globalMapState()).longitudeSpan).toBeGreaterThan(300);
+  await expect.poll(async () => (await globalMapState()).fixtureVisible).toBe(true);
+
+  await page.locator('#theaterbar [data-theater="ukr"]').click();
+  await expect.poll(async () => (await globalMapState()).zoom).toBeGreaterThanOrEqual(5);
+  await page.locator('#theaterbar [data-theater="global"]').click();
+  await expect.poll(async () => (await globalMapState()).longitudeSpan).toBeGreaterThan(300);
+  await expect.poll(async () => (await globalMapState()).fixtureVisible).toBe(true);
+
+  const railHeights = await page.evaluate(() => ({
+    tv: document.getElementById('panel-tv').getBoundingClientRect().height,
+    hazards: document.getElementById('panel-cyclones').getBoundingClientRect().height,
+  }));
+  expect(railHeights.tv).toBeGreaterThan(railHeights.hazards * 1.5);
+});
+
+for (const width of [900, 520]) {
+  test(`standard ${width}px layout keeps the map clear of the alert rail`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
+    await expect(page.locator('#body-quakes')).toContainText('Fixture Coast');
+    const layout = await page.evaluate(() => {
+      const map = document.getElementById('pane-map').getBoundingClientRect();
+      const quakes = document.getElementById('panel-quakes').getBoundingClientRect();
+      const weather = document.getElementById('panel-weather').getBoundingClientRect();
+      return {
+        mapBottom: map.bottom,
+        quakeTop: quakes.top,
+        quakeBottom: quakes.bottom,
+        weatherTop: weather.top,
+      };
+    });
+    expect(layout.quakeTop).toBeGreaterThanOrEqual(layout.mapBottom - 1);
+    expect(layout.weatherTop).toBeGreaterThanOrEqual(layout.quakeBottom - 1);
+  });
+}
+
 test('[overview] presents prioritized incidents, filters, changes, and all display modes', async ({ page }) => {
   const localApiRequests = [];
   page.on('request', request => {
@@ -833,6 +1011,9 @@ test('[overview] presents prioritized incidents, filters, changes, and all displ
   await page.goto('/', { waitUntil: 'domcontentloaded' });
   await expect(page.locator('body')).toHaveClass(/mode-overview/);
   await expect(page.locator('#overview-surface')).toHaveAttribute('data-view-state', 'ready');
+  await expect(page.locator('#overview-metric-active')).toHaveText('12');
+  await expect(page.locator('#overview-metric-priority')).toHaveText('96');
+  await expect(page.locator('#overview-metric-sources')).toHaveText('8/9');
   await expect(page.locator('#overview-now-list .overview-incident')).toHaveCount(8);
   await expect(page.locator('#overview-now-list')).toContainText('Sources: USGS');
   await expect(page.locator('#overview-now-list')).toContainText('Change: escalated');
@@ -840,6 +1021,7 @@ test('[overview] presents prioritized incidents, filters, changes, and all displ
   await expect(page.locator('#main')).toBeHidden();
   expect(localApiRequests.filter(pathname => ![
     '/api/session', '/api/settings', '/api/app-config', '/api/v2/bootstrap',
+    '/api/providers',
   ].includes(pathname))).toEqual([]);
   await page.evaluate(() => window.generateBriefing());
   await expect(page.locator('#overview-live')).toHaveText('Select an incident before opening a printable briefing.');
@@ -1399,7 +1581,7 @@ test('[overview offline history] labels cached revision and source age as not li
   await expect(page.locator('#overview-history-status')).toContainText('Cached local history — not live.');
   await expect(page.locator('#overview-history-status')).toContainText('Revision 12');
   await expect(page.locator('#overview-history-status')).toContainText('Oldest source cache 2h old.');
-  await page.getByText('Source status and freshness').click();
+  await page.getByText('Source status and freshness').click({ timeout: 5_000 });
   await expect(page.locator('#overview-source-list')).toContainText('1h old');
   await expect(page.locator('#overview-source-list')).toContainText('2h old');
 });
@@ -1447,7 +1629,7 @@ test('[overview] passes accessibility, keyboard, target-size, and reflow checks'
   const results = await new AxeBuilder({ page }).analyze();
   expect(results.violations.filter(item => ['critical', 'serious'].includes(item.impact))).toEqual([]);
   const snapshot = await page.locator('#overview-surface').ariaSnapshot();
-  expect(snapshot).toContain('heading "What matters now"');
+  expect(snapshot).toContain('heading "Global intelligence picture"');
   expect(snapshot).toContain('heading "Now"');
   expect(snapshot).toContain('application "Incident map');
   expect(snapshot).toContain('button "Global"');
@@ -1596,6 +1778,26 @@ for (const viewport of [
   });
 }
 
+test('[overview command visual] matches 1500x950 visual baseline', async ({ page }) => {
+  await page.clock.setFixedTime(new Date('2026-07-11T03:00:00Z'));
+  await page.setViewportSize({ width: 1500, height: 950 });
+  await page.goto('/', { waitUntil: 'domcontentloaded' });
+  await page.getByRole('button', { name: 'Command' }).click();
+  await expect(page.locator('#overview-surface')).toHaveAttribute('data-density', 'command');
+  await expect(page).toHaveScreenshot('command-1500x950.png', {
+    fullPage: true,
+    animations: 'disabled',
+    mask: [page.locator('#clock')],
+    maskColor: '#08101f',
+    maxDiffPixelRatio: VISUAL_MAX_DIFF_PIXEL_RATIO,
+  });
+});
+
+test('[overview unknown metric] does not label unknown lifecycle records active', async ({ page }) => {
+  await page.goto('/', { waitUntil: 'domcontentloaded' });
+  await expect(page.locator('#overview-metric-active')).toHaveText('11');
+});
+
 for (const viewport of [
   { name: 'dashboard-1500x950.png', width: 1500, height: 950 },
   { name: 'dashboard-1280x800.png', width: 1280, height: 800 },
@@ -1607,7 +1809,7 @@ for (const viewport of [
     await page.goto('/', { waitUntil: 'domcontentloaded' });
     await expect(page.locator('#body-quakes')).toContainText('Fixture Coast');
     await expect(page.locator('#map-status')).toHaveText('Offline world base ready.');
-    await expect(page.locator('#stat-feeds-txt')).toHaveText('15/15 live');
+    await expect(page.locator('#stat-feeds-txt')).toHaveText('16/16 live');
     await expect(page).toHaveScreenshot(viewport.name, {
       fullPage: true,
       animations: 'disabled',

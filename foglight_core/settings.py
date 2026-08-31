@@ -33,6 +33,7 @@ DEFAULT_SETTINGS = {
         "bitcoin_block": True,
     },
     "panels": {
+        "cyber": True,
         "tv": True,
         "conflict": True,
         "cyclones": True,

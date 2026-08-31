@@ -72,6 +72,7 @@ from foglight_core.providers.legacy import (
 )
 from foglight_core.providers.legacy import (
     adsb_flights,
+    cisa_kev,
     commodities,
     conflict_aggregate,
     conflict_hotspots,
@@ -342,6 +343,7 @@ PROVIDER_REGISTRY = ProviderRegistry(
         FunctionProviderAdapter("reddit_popular", reddit_popular),
         FunctionProviderAdapter("rss_proxy", rss_proxy),
         FunctionProviderAdapter("nhc_storms", nhc_storms),
+        FunctionProviderAdapter("cisa_kev", cisa_kev),
         FunctionProviderAdapter("reliefweb_rss", reliefweb_rss),
         FunctionProviderAdapter("conflict_rss", conflict_aggregate),
         FunctionProviderAdapter("noaa_space_weather", space_weather),
@@ -984,6 +986,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
             return self._proxy_provider("rss_proxy", url=url_arg)
         if path == "/api/cyclones":
             return self._proxy_provider("nhc_storms")
+        if path == "/api/cisa-kev":
+            return self._proxy_provider("cisa_kev")
         if path == "/api/relief":
             return self._proxy_provider("reliefweb_rss")
         if path == "/api/conflict":

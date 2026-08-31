@@ -43,6 +43,62 @@ export function safeHttpUrl(value, base = globalThis.location?.origin || 'http:/
   }
 }
 
+function finiteNumber(value) {
+  const candidate = typeof value === 'string' && value.trim() !== '' ? Number(value) : value;
+  return Number.isFinite(candidate) ? candidate : null;
+}
+
+export function latestKpValue(rows) {
+  if (!Array.isArray(rows)) return null;
+  let fallback = null;
+  let newest = null;
+  let newestTimestamp = -Infinity;
+
+  for (const row of rows) {
+    let rawKp;
+    let rawTimestamp;
+    if (Array.isArray(row)) {
+      [rawTimestamp, rawKp] = row;
+    } else if (row && typeof row === 'object') {
+      rawKp = row.Kp ?? row.kp;
+      rawTimestamp = row.time_tag;
+    } else {
+      continue;
+    }
+
+    const kp = finiteNumber(rawKp);
+    if (kp == null) continue;
+    fallback = kp;
+    const timestamp = Date.parse(String(rawTimestamp ?? ''));
+    if (Number.isFinite(timestamp) && timestamp >= newestTimestamp) {
+      newest = kp;
+      newestTimestamp = timestamp;
+    }
+  }
+
+  return newest ?? fallback;
+}
+
+export function validMapCoordinates(latitudeValue, longitudeValue) {
+  const directionalNumber = (value, allowedDirections) => {
+    const numeric = finiteNumber(value);
+    if (numeric != null) return numeric;
+    if (typeof value !== 'string') return null;
+    const match = value.trim().match(/^(\d+(?:\.\d+)?)\s*([NSEW])$/i);
+    if (!match || !allowedDirections.includes(match[2].toUpperCase())) return null;
+    const magnitude = Number(match[1]);
+    return ['S', 'W'].includes(match[2].toUpperCase()) ? -magnitude : magnitude;
+  };
+  const latitude = directionalNumber(latitudeValue, 'NS');
+  const longitude = directionalNumber(longitudeValue, 'EW');
+  if (
+    latitude == null || longitude == null
+    || latitude < -90 || latitude > 90
+    || longitude < -180 || longitude > 180
+  ) return null;
+  return [latitude, longitude];
+}
+
 export function updateSourceFreshness(states, source, freshness) {
   if (!(states instanceof Map)) throw new TypeError('source freshness state must be a Map');
   if (typeof source === 'string' && source) {
