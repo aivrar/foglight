@@ -1,5 +1,5 @@
 pyinstaller==6.22.3
-pillow==12.3.0
+pillow==13.0.0
 pywebview==6.2.1
 pythonnet==3.1.0
 # pywebview pulls this transitively; pin it explicitly so release audits cannot
